@@ -248,7 +248,7 @@ function drawFace(){
   else if(age<BUILD+HOLD)prog=2;
   else{prog=2-(age-BUILD-HOLD)/GONE*2;fade=1}
   const dim=age<60?age/60:(age>BUILD+HOLD?Math.max(0,1-(age-BUILD-HOLD)/GONE):1);
-  ctx.fillStyle="rgba(3,3,5,"+(.78*dim)+")";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(3,3,5,"+(.96*dim)+")";ctx.fillRect(0,0,W,H);
   const pc=Math.min(W*.92/FC,H*.86/(FRn*1.6)),pch=pc*1.6,x0=(W-FC*pc)/2,y0=(H-FRn*pch)/2,th=THEMES[cur];
   ctx.font="bold "+(pc*1.45)+"px ui-monospace,Menlo,Consolas,monospace";ctx.textBaseline="top";
   const hold=age>=BUILD&&age<BUILD+HOLD;
