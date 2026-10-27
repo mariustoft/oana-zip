@@ -237,7 +237,7 @@ function faceInit(){const a=new Float32Array(FC*FRn);
   face.th=a}
 function faceHit(){ // call on every real tap
   face.streak=(t-face.lastC<50)?face.streak+1:1;face.lastC=t;
-  if(face.streak>=30&&!face.on){face.on=true;face.t0=t;face.streak=0;if(!face.th)faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
+  if(face.streak>=12&&!face.on){face.on=true;face.t0=t;face.streak=0;if(!face.th)faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
 }
 function drawFace(){
   if(!face.on)return;
