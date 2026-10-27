@@ -60,7 +60,7 @@ const STY=[
  ["400","Menlo,'Courier New',monospace","",1],
  ["300","Avenir,'Avenir Next','Gill Sans',Helvetica,Arial,sans-serif","",1]
 ];
-let sty=0;
+let sty=0,fontIn=3+(Math.random()*3|0);
 function glyphs(si){
   const S=STY[si],TXT=S[3]?"OANA.ZIP":"oana.zip",X=1.6;
   off.width=cols;off.height=rows;
@@ -240,7 +240,7 @@ function fire(clientX,clientY,quiet){
   last=bag.pop();FX[last](x,y);
   try{if(!quiet){unlockAudio();if(SFX[last])SFX[last]();SFX.tick();buzz(BUZZ[last])}}catch(e){}
   silent=false;
-  if(!quiet){try{let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;glyphs(sty);drips=[]}catch(e){}}
+  if(!quiet){fontIn--;if(fontIn<=0){fontIn=3+(Math.random()*3|0);try{let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;glyphs(sty);drips=[]}catch(e){}}}
   // click counter: milestones and combos
   if(!quiet){
     clicks++;combo=(t-lastClick<32)?combo+1:1;lastClick=t;
