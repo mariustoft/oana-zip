@@ -60,7 +60,7 @@ const STY=[
  ["400","Menlo,'Courier New',monospace","",1],
  ["300","Avenir,'Avenir Next','Gill Sans',Helvetica,Arial,sans-serif","",1]
 ];
-let sty=0,fontIn=3+(Math.random()*3|0);
+let dot=null,sty=0,fontIn=3+(Math.random()*3|0);
 function glyphs(si){
   const S=STY[si],TXT=S[3]?"OANA.ZIP":"oana.zip",X=1.6;
   off.width=cols;off.height=rows;
@@ -91,6 +91,10 @@ function glyphs(si){
   lid=new Int16Array(cols).fill(-1);nLet=0;let inL=false;
   for(let c=0;c<cols;c++){let any=false;for(let r=0;r<rows;r++)if(mask[r*cols+c]>.15){any=true;break}
     if(any){if(!inL){inL=true;nLet++}lid[c]=nLet-1}else inL=false}
+  try{const b2=box();octx.font=f(fs);
+   const tot=octx.measureText(TXT).width,pre=octx.measureText(TXT.slice(0,4)).width,dw=octx.measureText(".").width;
+   const sx=(cols/2+dx)/X-tot/2+pre+dw/2;
+   dot={x:sx*X*cell,y:(b2.y1+1-Math.max(1,b2.h*.06))*ch}}catch(e){dot={x:cols/2*cell,y:rows/2*ch}}
   edge=new Uint8Array(cols*rows);
   for(let r=1;r<rows-1;r++)for(let c=1;c<cols-1;c++){const i=r*cols+c;if(mask[i]>.15&&(mask[i-1]<.15||mask[i+1]<.15||mask[i-cols]<.15||mask[i+cols]<.15))edge[i]=1}
 }
@@ -235,9 +239,9 @@ let face={on:false,t0:0,streak:0,lastC:-999,th:null};
 function faceInit(){const a=new Float32Array(FC*FRn);
   for(let r=0;r<FRn;r++)for(let c=0;c<FC;c++){const d=Math.hypot((c-FC/2)/(FC/2),(r-FRn*.5)/(FRn/2)),n=hash(c*1.7,r*2.3);a[r*FC+c]=Math.min(.999,.55*n+.45*Math.min(1,d))}
   face.th=a}
-function faceHit(){ // call on every real tap
-  face.streak=(t-face.lastC<50)?face.streak+1:1;face.lastC=t;
-  if(face.streak>=12&&!face.on){face.on=true;face.t0=t;face.streak=0;if(!face.th)faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
+function faceHit(onDot){ // only the dot between oana and zip reveals the face
+  if(!onDot||face.on)return;
+  face.on=true;face.t0=t;if(!face.th)faceInit();try{buzz([40,60,40,60,120])}catch(e){}
 }
 function drawFace(){
   if(!face.on)return;
@@ -274,6 +278,7 @@ function drawFace(){
 }
 function fire(clientX,clientY,quiet){
   silent=!!quiet;
+  const onDot=!quiet&&!face.on&&dot&&Math.hypot(clientX-dot.x,clientY-dot.y)<=Math.max(34,cell*3);
   const x=Math.max(0,Math.min(cols-1,clientX/cell|0)),y=Math.max(0,Math.min(rows-1,clientY/ch|0));
   // new theme wipes outward from the click
   if(wipe)cur=wipe.to;
@@ -287,7 +292,7 @@ function fire(clientX,clientY,quiet){
   if(!quiet){fontIn--;if(fontIn<=0){fontIn=3+(Math.random()*3|0);try{let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;glyphs(sty);drips=[]}catch(e){}}}
   // click counter: milestones and combos
   if(!quiet){
-    clicks++;combo=(t-lastClick<32)?combo+1:1;lastClick=t;try{faceHit()}catch(e){}
+    clicks++;combo=(t-lastClick<32)?combo+1:1;lastClick=t;try{faceHit(onDot)}catch(e){}
     try{
       if(clicks%5===0){const others=NAMES.filter(function(n){return n!==last});const n2=others[Math.random()*others.length|0];FX[n2](x,y);if(SFX[n2])SFX[n2]()}
       if(clicks%10===0){finale(clientX,clientY)}
