@@ -59,11 +59,16 @@ function build(){
   off.width=cols;off.height=rows;
   octx.clearRect(0,0,cols,rows);
   octx.fillStyle="#fff";octx.textAlign="center";octx.textBaseline="middle";
-  const f=s=>"900 "+s+"px Impact,Haettenschweider,'Arial Black',sans-serif";
+  const f=s=>"bold "+s+"px Helvetica,Arial,'Liberation Sans','DejaVu Sans',sans-serif";
+  const L=W<H?["oana.","zip"]:["oana.zip"],X=1.6;
   let fs=rows*.62;octx.font=f(fs);
-  const tw=octx.measureText("oana.zip").width,max=cols*(W<H?.92:.82);
-  if(tw>max){fs*=max/tw;octx.font=f(fs)}
-  octx.fillText("oana.zip",cols/2,rows/2);
+  const mw=()=>Math.max.apply(null,L.map(q=>octx.measureText(q).width))*X;
+  const maxw=cols*(W<H?.9:.84),maxh=rows*(W<H?.7:.6);
+  let k=Math.min(1,maxw/mw(),maxh/(fs*1.1*L.length));
+  fs*=k;octx.font=f(fs);
+  octx.save();octx.scale(X,1);
+  L.forEach((q,i)=>octx.fillText(q,cols/2/X,rows/2+(i-(L.length-1)/2)*fs*1.12));
+  octx.restore();
   back.width=cols;back.height=rows;const bx=back.getContext("2d");bx.clearRect(0,0,cols,rows);bx.drawImage(off,0,0);bx.globalCompositeOperation="source-in";bx.fillStyle="#030305";bx.fillRect(0,0,cols,rows);
   const d=octx.getImageData(0,0,cols,rows).data;
   mask=new Float32Array(cols*rows);chars=new Array(cols*rows);
