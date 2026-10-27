@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>oana.zip</title>
 <style>
-html,body{margin:0;height:100%;background:#060608;overflow:hidden}
-canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+html,body{margin:0;height:100%;background:#060608;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
 h1{position:absolute;left:-9999px}
 .vig{pointer-events:none;position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8))}
 </style>
@@ -20,7 +20,19 @@ const cv=document.getElementById("c"),ctx=cv.getContext("2d");
 const off=document.createElement("canvas"),octx=off.getContext("2d",{willReadFrequently:true});
 const RAMP=" .:-=+*abxz#%@";
 const JUNK="01<>/\\|+*#%&=-_:;.~^";
+// colour themes: h = base hue, a = hue swing, s = saturation, l = lightness, rh = rain hue
+const THEMES=[
+  {h:280,a:85,s:85,l:58,rh:150},
+  {h:125,a:22,s:95,l:54,rh:125},
+  {h:18,a:30,s:96,l:56,rh:20},
+  {h:190,a:32,s:92,l:62,rh:195},
+  {h:45,a:20,s:96,l:58,rh:48},
+  {h:330,a:45,s:96,l:62,rh:320},
+  {h:0,a:0,s:0,l:82,rh:0}
+];
 let rain=[],W,H,cell,ch,cols,rows,mask,chars,dpr,t=0,px=-999,py=-999,glitch=0,nextGlitch=200,drips=[],tear;
+let cur=0,wipe=null,waves=[],pulls=[],reboots=[],bolts=[],parts=[],rainBoost=0,flash=0,invert=0,shake=0;
+let bag=[],last="";
 function hash(a,b){const h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h)}
 function build(){
   dpr=Math.min(devicePixelRatio||1,2);
@@ -39,39 +51,93 @@ function build(){
   const d=octx.getImageData(0,0,cols,rows).data;
   mask=new Float32Array(cols*rows);chars=new Array(cols*rows);
   for(let i=0;i<mask.length;i++){mask[i]=d[i*4+3]/255;chars[i]=RAMP[Math.min(RAMP.length-1,mask[i]*RAMP.length|0)]}
-  tear=new Float32Array(rows);drips=[];t=0;rain=Array.from({length:cols},(_,c)=>({y:Math.random()*-rows*1.5,v:.12+Math.random()*.3,len:6+Math.random()*16|0,on:Math.random()<.55}));
+  tear=new Float32Array(rows);drips=[];t=0;wipe=null;waves=[];pulls=[];reboots=[];bolts=[];parts=[];
+  rain=Array.from({length:cols},()=>({y:Math.random()*-rows*1.5,v:.12+Math.random()*.3,len:6+Math.random()*16|0,on:Math.random()<.55}));
 }
+function themeAt(c,r){
+  if(!wipe)return THEMES[cur];
+  const d=Math.hypot(c-wipe.x,(r-wipe.y)*1.6);
+  return d<(t-wipe.t0)*2.6?THEMES[wipe.to]:THEMES[wipe.from];
+}
+function rj(){return JUNK[Math.random()*JUNK.length|0]}
+// ---------- click effects ----------
+const FX={
+  shockwave(x,y){waves.push({x,y,t0:t});waves.push({x,y,t0:t+10});glitch=10},
+  implode(x,y){pulls.push({x,y,t0:t,dur:80});shake=14},
+  reboot(x,y){reboots.push({x,y,t0:t})},
+  explode(x,y){
+    const px_=x*cell+cell/2,py_=y*ch;
+    for(let i=0;i<120;i++){const a=Math.random()*Math.PI*2,s=1.5+Math.random()*9;
+      parts.push({x:px_,y:py_,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1.5,g:.14,life:60+Math.random()*60,max:120,ch:rj(),hue:Math.random()})}
+    waves.push({x,y,t0:t});shake=10;flash=.35
+  },
+  lightning(x,y){
+    const mk=dir=>{const pts=[];let cx=x*cell,cy=y*ch;
+      while(cy>-ch&&cy<H+ch){pts.push([cx,cy]);cx+=(Math.random()-.5)*cell*5;cy+=dir*ch*(.8+Math.random()*.8);
+        if(Math.random()<.12){const b=[];let bx=cx,by=cy,bd=Math.random()<.5?-1:1;for(let k=0;k<8;k++){b.push([bx,by]);bx+=bd*cell*(1+Math.random()*2);by+=dir*ch*.7}bolts.push({pts:b,t0:t,thin:true})}}
+      bolts.push({pts,t0:t})};
+    mk(-1);mk(1);flash=.32;glitch=14;shake=16
+  },
+  surge(x,y){rainBoost=1;for(const d of rain){d.on=true}waves.push({x,y,t0:t})},
+  invert(x,y){invert=26;waves.push({x,y,t0:t});glitch=12},
+  glitchstorm(x,y){glitch=50;nextGlitch=400;shake=18}
+};
+const NAMES=Object.keys(FX);
+function fire(clientX,clientY){
+  const x=Math.max(0,Math.min(cols-1,clientX/cell|0)),y=Math.max(0,Math.min(rows-1,clientY/ch|0));
+  // new theme wipes outward from the click
+  if(wipe)cur=wipe.to;
+  let to;do{to=Math.random()*THEMES.length|0}while(to===cur);
+  wipe={x,y,t0:t,from:cur,to};
+  // pick next effect from a shuffled bag so they don't repeat
+  if(!bag.length){bag=NAMES.slice().sort(()=>Math.random()-.5);if(bag[bag.length-1]===last)bag.reverse()}
+  last=bag.pop();FX[last](x,y);
+  // small sparkle burst on every click
+  for(let i=0;i<18;i++){const a=Math.random()*Math.PI*2,s=1+Math.random()*4;
+    parts.push({x:clientX,y:clientY,vx:Math.cos(a)*s,vy:Math.sin(a)*s,g:.03,life:30+Math.random()*30,max:60,ch:rj(),hue:Math.random()})}
+}
+// ---------- main loop ----------
 function frame(){
   t++;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.fillStyle="#060608";ctx.fillRect(0,0,W,H);
+  if(shake>0){shake*=.9;if(shake<.3)shake=0;ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake)}
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;
   ctx.textBaseline="top";
-  // rare glitch event
+  if(wipe&&(t-wipe.t0)*2.6>Math.hypot(cols,rows*1.6)){cur=wipe.to;wipe=null}
+  waves=waves.filter(w=>t-w.t0<110);pulls=pulls.filter(p=>t-p.t0<p.dur);reboots=reboots.filter(r=>t-r.t0<130);
+  rainBoost*=.985;if(rainBoost<.02)rainBoost=0;
   if(glitch>0){glitch--;if(glitch%3==0){for(let k=0;k<5;k++)tear[Math.random()*rows|0]=(Math.random()-.5)*34}}
   else{for(let r=0;r<rows;r++)tear[r]=0;if(--nextGlitch<=0){glitch=14;nextGlitch=220+Math.random()*320}}
   const g=glitch>0;
-  // light band sweeping slowly, then pausing
   const cyc=(t%900)/900,bandX=-.2*cols+cyc*1.4*cols;
   const mx=px/cell,my=py/ch;
-  const decode=Math.min(1,t/110); // intro: resolves left to right
-  // matrix rain, full screen, dim, behind the letters
+  const decode=Math.min(1,t/110);
+  // ---- matrix rain (themed) ----
   for(let c=0;c<cols;c++){
-    const d=rain[c];if(!d.on){if(Math.random()<.004){d.on=true;d.y=-d.len}continue}
-    d.y+=d.v;
-    for(let j=0;j<d.len;j++){
+    const d=rain[c];if(!d.on){if(Math.random()<.004+rainBoost*.05){d.on=true;d.y=-d.len}continue}
+    d.y+=d.v*(1+rainBoost*5);
+    const len=d.len+(rainBoost*14|0);
+    for(let j=0;j<len;j++){
       const rr=Math.floor(d.y)-j;if(rr<0||rr>=rows)continue;
-      const f=1-j/d.len;
-      ctx.fillStyle=j==0?"rgba(210,255,235,.55)":`rgba(60,255,170,${.04+.2*f*f})`;
+      const f=1-j/len,th=themeAt(c,rr);
+      ctx.fillStyle=j==0?`hsl(${th.rh} ${th.s?60:0}% 88% / ${.55+rainBoost*.4})`:`hsl(${th.rh} ${th.s?100:0}% 58% / ${(.04+.2*f*f)*(1+rainBoost*1.6)})`;
       ctx.fillText(JUNK[(c*7+rr*3+(t>>3)*(j+1))%JUNK.length],c*cell,rr*ch);
     }
-    if(d.y-d.len>rows){d.y=-Math.random()*20;d.v=.12+Math.random()*.3;d.len=6+Math.random()*16|0;d.on=Math.random()<.7}
+    if(d.y-len>rows){d.y=-Math.random()*20;d.v=.12+Math.random()*.3;d.len=6+Math.random()*16|0;d.on=Math.random()<.7}
   }
-  // background drift
+  // ---- letters + background ----
   for(let r=0;r<rows;r++){
     for(let c=0;c<cols;c++){
       const i=r*cols+c,m=mask[i];
+      // wave rings (apply to all cells)
+      let ring=0;
+      for(let k=0;k<waves.length;k++){const w=waves[k],age=t-w.t0;if(age<0)continue;
+        const dd=Math.hypot(c-w.x,(r-w.y)*1.6),rad=age*1.5,x=(dd-rad)/3;
+        ring+=Math.exp(-x*x)*(1-age/110)}
       if(m<.15){
         const n=hash(c,r);
+        if(ring>.18){const th=themeAt(c,r);ctx.fillStyle=`hsl(${th.h+th.a*Math.sin(c*.1)} ${th.s}% 66% / ${Math.min(.95,ring*.9)})`;ctx.fillText(rj(),c*cell,r*ch);continue}
         if(n>.955){
           const a=.07+.16*Math.abs(Math.sin(t*.012+n*60));
           ctx.fillStyle=`rgba(140,130,200,${a})`;
@@ -79,30 +145,36 @@ function frame(){
         }
         continue;
       }
+      const th=themeAt(c,r);
+      // reboot: letters scramble, then decode outward from the click
+      let scr=false;
+      for(let k=0;k<reboots.length;k++){const b=reboots[k],age=t-b.t0,dd=Math.hypot(c-b.x,(r-b.y)*1.6);
+        if(age<125&&dd>(age-8)*1.9)scr=true}
       const resolved=c/cols<decode*1.15-.1;
-      if(!resolved){ctx.fillStyle="rgba(190,180,255,.5)";ctx.fillText(JUNK[Math.random()*JUNK.length|0],c*cell,r*ch);continue}
-      // slow shimmer: only a few cells change char at a time
+      if(!resolved||scr){ctx.fillStyle=`hsl(${th.h} ${th.s?60:0}% 75% / .55)`;ctx.fillText(rj(),c*cell,r*ch);continue}
       if(Math.random()<.004)chars[i]=RAMP[Math.min(RAMP.length-1,(m*RAMP.length+Math.random()*3)|0)];
       let chr=chars[i];
       const dist=Math.hypot(c-mx,(r-my)*1.6),near=dist<8?1-dist/8:0;
-      if(near>0&&Math.random()<near*.6)chr=JUNK[Math.random()*JUNK.length|0];
+      if(near>0&&Math.random()<near*.6)chr=rj();
+      if(ring>.3&&Math.random()<ring)chr=rj();
       const band=Math.max(0,1-Math.abs(c-bandX)/7);
-      const hue=(280+85*Math.sin(c*.035+r*.03+t*.006)+360)%360;
-      const light=58+band*32+near*20;
-      const x=c*cell+tear[r],y=r*ch+near*Math.sin(t*.2+c)*2;
+      const hue=(th.h+th.a*Math.sin(c*.035+r*.03+t*.006)+360)%360;
+      const light=Math.min(96,th.l+band*32+near*20+ring*34);
+      let x=c*cell+tear[r],y=r*ch+near*Math.sin(t*.2+c)*2+ring*Math.sin(t*.5+c)*3;
+      for(let k=0;k<pulls.length;k++){const p=pulls[k],pr=(t-p.t0)/p.dur,kk=.75*Math.sin(Math.PI*pr);
+        x+=(p.x-c)*cell*kk;y+=(p.y-r)*ch*kk}
       if(g){
         ctx.globalCompositeOperation="lighter";
         ctx.fillStyle="rgba(255,40,210,.8)";ctx.fillText(chr,x-4,y);
         ctx.fillStyle="rgba(0,230,255,.8)";ctx.fillText(chr,x+4,y);
         ctx.globalCompositeOperation="source-over";
       }
-      ctx.fillStyle=`hsl(${hue} 85% ${light}%)`;
+      ctx.fillStyle=`hsl(${hue} ${th.s}% ${light}%)`;
       ctx.fillText(chr,x,y);
-      // letters occasionally melt: spawn a drip from a bottom edge
       if(Math.random()<.00012&&(r+1>=rows||mask[i+cols]<.15))drips.push({c,r:r+1,len:4+Math.random()*10|0,hue,age:0});
     }
   }
-  // drips
+  // ---- drips ----
   for(let k=drips.length-1;k>=0;k--){
     const d=drips[k];d.age++;
     const head=d.r+d.age*.08;
@@ -113,14 +185,42 @@ function frame(){
     }
     if(head-d.len>rows)drips.splice(k,1);
   }
-  // soft scanlines
+  // ---- lightning ----
+  for(let k=bolts.length-1;k>=0;k--){
+    const b=bolts[k],age=t-b.t0;if(age>22){bolts.splice(k,1);continue}
+    const a=1-age/22;
+    ctx.shadowColor="#9ff";ctx.shadowBlur=b.thin?0:14*a;
+    ctx.fillStyle=b.thin?`rgba(160,230,255,${a*.7})`:`rgba(235,250,255,${a})`;
+    for(let j=0;j<b.pts.length;j++){const p=b.pts[j],q=b.pts[j+1];
+      const sym=q?(q[0]>p[0]+2?"\\":q[0]<p[0]-2?"/":"|"):"*";
+      ctx.fillText(Math.random()<.15?rj():sym,p[0],p[1]);
+      if(!b.thin&&Math.random()<.4){ctx.fillText(sym,p[0]+cell,p[1]);ctx.fillText(sym,p[0]-cell,p[1])}}
+    ctx.shadowBlur=0;
+  }
+  // ---- particles ----
+  for(let k=parts.length-1;k>=0;k--){
+    const p=parts[k];p.life--;if(p.life<=0){parts.splice(k,1);continue}
+    p.vy+=p.g;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;
+    if(Math.random()<.1)p.ch=rj();
+    const th=THEMES[cur],a=p.life/p.max;
+    ctx.fillStyle=`hsl(${(th.h+th.a*(p.hue*2-1)+360)%360} ${th.s?95:0}% ${60+a*30}% / ${Math.min(1,a*1.6)})`;
+    ctx.fillText(p.ch,p.x,p.y);
+  }
+  // ---- soft scanlines ----
   ctx.fillStyle="rgba(0,0,0,.18)";
   for(let y=0;y<H;y+=3)ctx.fillRect(0,y,W,1);
+  // ---- full-screen flash / invert ----
+  if(flash>0.01){ctx.fillStyle=`rgba(255,255,255,${flash})`;ctx.fillRect(0,0,W,H);flash*=.8}
+  if(invert>0){invert--;const p=1-invert/26;ctx.globalCompositeOperation="difference";
+    ctx.fillStyle=`rgba(255,255,255,${Math.sin(Math.PI*p)})`;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation="source-over"}
   requestAnimationFrame(frame);
 }
-addEventListener("pointermove",e=>{px=e.clientX;py=e.clientY});
-addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;glitch=16;nextGlitch=300});
+// ---------- input ----------
+addEventListener("pointermove",e=>{px=e.clientX;py=e.clientY;
+  if(e.buttons){for(let i=0;i<2;i++)parts.push({x:px+(Math.random()-.5)*10,y:py+(Math.random()-.5)*10,vx:(Math.random()-.5)*2,vy:Math.random()*-1.5,g:.03,life:35,max:35,ch:rj(),hue:Math.random()})}});
+addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;fire(e.clientX,e.clientY)});
 addEventListener("pointerleave",()=>{px=py=-999});
+addEventListener("keydown",e=>{if(e.repeat||e.metaKey||e.ctrlKey)return;fire(Math.random()*W,Math.random()*H)});
 addEventListener("resize",build);
 build();requestAnimationFrame(frame);
 </script>
