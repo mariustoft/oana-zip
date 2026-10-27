@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>oana.zip</title>
 <style>
-html,body{margin:0;height:100%;background:#050507;overflow:hidden}
+html,body{margin:0;height:100%;background:#060608;overflow:hidden}
 canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 h1{position:absolute;left:-9999px}
-.vig{pointer-events:none;position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.75));}
+.vig{pointer-events:none;position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8))}
 </style>
 </head>
 <body>
@@ -18,86 +18,99 @@ h1{position:absolute;left:-9999px}
 <script>
 const cv=document.getElementById("c"),ctx=cv.getContext("2d");
 const off=document.createElement("canvas"),octx=off.getContext("2d",{willReadFrequently:true});
-const RAMP=" .'`,:;-~+=*abcxz#%&@";
-const NOISE="01<>/\\|+*#%&=-_:;.";
-let W,H,cell,cols,rows,mask,dpr,t=0,px=-999,py=-999,burst=0,rowShift;
+const RAMP=" .:-=+*abxz#%@";
+const JUNK="01<>/\\|+*#%&=-_:;.~^";
+let W,H,cell,ch,cols,rows,mask,chars,dpr,t=0,px=-999,py=-999,glitch=0,nextGlitch=200,drips=[],tear;
+function hash(a,b){const h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h)}
 function build(){
   dpr=Math.min(devicePixelRatio||1,2);
   W=innerWidth;H=innerHeight;
   cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  cell=Math.max(7,Math.round(Math.min(W,H)/70));
-  cols=Math.ceil(W/cell);rows=Math.ceil(H/(cell*1.6));
+  cell=Math.max(7,Math.round(Math.min(W,H)/70));ch=cell*1.6;
+  cols=Math.ceil(W/cell);rows=Math.ceil(H/ch);
   off.width=cols;off.height=rows;
   octx.clearRect(0,0,cols,rows);
   octx.fillStyle="#fff";octx.textAlign="center";octx.textBaseline="middle";
-  let fs=rows*.7;octx.font="900 "+fs+"px Impact,Haettenschweider,'Arial Black',sans-serif";
+  const f=s=>"900 "+s+"px Impact,Haettenschweider,'Arial Black',sans-serif";
+  let fs=rows*.7;octx.font=f(fs);
   const tw=octx.measureText("oana.zip").width,max=cols*.92;
-  if(tw>max){fs*=max/tw}
-  octx.font="900 "+fs+"px Impact,Haettenschweider,'Arial Black',sans-serif";
+  if(tw>max){fs*=max/tw;octx.font=f(fs)}
   octx.fillText("oana.zip",cols/2,rows/2);
   const d=octx.getImageData(0,0,cols,rows).data;
-  mask=new Float32Array(cols*rows);
-  for(let i=0;i<mask.length;i++)mask[i]=d[i*4+3]/255;
-  rowShift=new Float32Array(rows);
+  mask=new Float32Array(cols*rows);chars=new Array(cols*rows);
+  for(let i=0;i<mask.length;i++){mask[i]=d[i*4+3]/255;chars[i]=RAMP[Math.min(RAMP.length-1,mask[i]*RAMP.length|0)]}
+  tear=new Float32Array(rows);drips=[];t=0;
 }
-function hash(a,b){let h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h)}
 function frame(){
-  t+=1;
-  ctx.fillStyle="rgba(5,5,7,.38)";ctx.fillRect(0,0,W,H);
-  const ch=cell*1.6;
+  t++;
+  ctx.fillStyle="#060608";ctx.fillRect(0,0,W,H);
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;
   ctx.textBaseline="top";
-  if(burst<=0&&Math.random()<.07){burst=8+Math.random()*18|0}
-  if(burst>0){burst--;for(let k=0;k<14;k++){const r=Math.random()*rows|0;rowShift[r]=(Math.random()-.5)*60}}
-  else for(let r=0;r<rows;r++){rowShift[r]*=.5;if(Math.random()<.01)rowShift[r]=(Math.random()-.5)*20}
+  // rare glitch event
+  if(glitch>0){glitch--;if(glitch%3==0){for(let k=0;k<5;k++)tear[Math.random()*rows|0]=(Math.random()-.5)*34}}
+  else{for(let r=0;r<rows;r++)tear[r]=0;if(--nextGlitch<=0){glitch=14;nextGlitch=220+Math.random()*320}}
+  const g=glitch>0;
+  // light band sweeping slowly, then pausing
+  const cyc=(t%900)/900,bandX=-.2*cols+cyc*1.4*cols;
   const mx=px/cell,my=py/ch;
-  const wob=4+Math.sin(t*.07)*3+(burst>0?Math.random()*14:0);const layers=[["#ff2bd6",-wob],["#00e5ff",wob],["#f4f4ff",0]];
-  for(const [col,dx] of layers){
-    ctx.fillStyle=col;
-    ctx.globalCompositeOperation=col==="#f4f4ff"?"source-over":"lighter";
-    ctx.globalAlpha=col==="#f4f4ff"?1:.75;
-    for(let r=0;r<rows;r++){
-      const sh=rowShift[r]+Math.sin(t*.06+r*.35)*3;
-      for(let c=0;c<cols;c++){
-        const m=mask[r*cols+c];
-        const dist=Math.hypot(c-mx,(r-my)*1.6);
-        const near=dist<9?1-dist/9:0;
-        if(m>.15){
-          const flick=hash(c+t,r)*.5+Math.sin(t*.05+c*.3+r*.5)*.15;
-          let v=Math.min(.999,m*.85+flick*.3+near*.6);
-          let chr=RAMP[v*RAMP.length|0];
-          if(((near>.25&&Math.random()<near)||Math.random()<.015+(burst>0?.12:0)))chr=NOISE[Math.random()*NOISE.length|0];
-          if(chr!==" ")ctx.fillText(chr,c*cell+dx+sh+(near?(Math.random()-.5)*near*10:0),r*ch+(near?(Math.random()-.5)*near*6:0));
-        }else if(col==="#f4f4ff"){
-          const n=hash(c,r);
-          const wave=Math.sin(c*.18+t*.09)+Math.cos(r*.25-t*.07);
-          if(n>.93-.03*wave){
-            ctx.globalAlpha=.10+.22*Math.abs(Math.sin(t*.02+n*40));
-            ctx.fillStyle=n>.97?"#8a6bff":"#4a4a66";
-            ctx.fillText(NOISE[(n*977|0)%NOISE.length],c*cell,r*ch);
-            ctx.fillStyle="#f4f4ff";ctx.globalAlpha=1;
-          }
+  const decode=Math.min(1,t/110); // intro: resolves left to right
+  // background drift
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const i=r*cols+c,m=mask[i];
+      if(m<.15){
+        const n=hash(c,r);
+        if(n>.955){
+          const a=.07+.16*Math.abs(Math.sin(t*.012+n*60));
+          ctx.fillStyle=`rgba(140,130,200,${a})`;
+          ctx.fillText(JUNK[(n*977|0)%JUNK.length],c*cell,r*ch);
         }
+        continue;
       }
+      const resolved=c/cols<decode*1.15-.1;
+      if(!resolved){ctx.fillStyle="rgba(190,180,255,.5)";ctx.fillText(JUNK[Math.random()*JUNK.length|0],c*cell,r*ch);continue}
+      // slow shimmer: only a few cells change char at a time
+      if(Math.random()<.004)chars[i]=RAMP[Math.min(RAMP.length-1,(m*RAMP.length+Math.random()*3)|0)];
+      let chr=chars[i];
+      const dist=Math.hypot(c-mx,(r-my)*1.6),near=dist<8?1-dist/8:0;
+      if(near>0&&Math.random()<near*.6)chr=JUNK[Math.random()*JUNK.length|0];
+      const band=Math.max(0,1-Math.abs(c-bandX)/7);
+      const hue=(280+85*Math.sin(c*.035+r*.03+t*.006)+360)%360;
+      const light=58+band*32+near*20;
+      const x=c*cell+tear[r],y=r*ch+near*Math.sin(t*.2+c)*2;
+      if(g){
+        ctx.globalCompositeOperation="lighter";
+        ctx.fillStyle="rgba(255,40,210,.8)";ctx.fillText(chr,x-4,y);
+        ctx.fillStyle="rgba(0,230,255,.8)";ctx.fillText(chr,x+4,y);
+        ctx.globalCompositeOperation="source-over";
+      }
+      ctx.fillStyle=`hsl(${hue} 85% ${light}%)`;
+      ctx.fillText(chr,x,y);
+      // letters occasionally melt: spawn a drip from a bottom edge
+      if(Math.random()<.00012&&(r+1>=rows||mask[i+cols]<.15))drips.push({c,r:r+1,len:4+Math.random()*10|0,hue,age:0});
     }
   }
-  ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";
-  // glitch slice: copy a horizontal band and offset it
-  for(let q=0;q<(burst>0?4:0);q++){
-    const sy=Math.random()*H|0,sh=10+Math.random()*60|0,ox=(Math.random()-.5)*60;
-    ctx.drawImage(cv,0,sy*dpr,W*dpr,sh*dpr,ox,sy,W,sh);
+  // drips
+  for(let k=drips.length-1;k>=0;k--){
+    const d=drips[k];d.age++;
+    const head=d.r+d.age*.08;
+    for(let j=0;j<d.len;j++){
+      const rr=head-j;if(rr<0||rr>=rows)continue;
+      ctx.fillStyle=`hsl(${d.hue} 85% 60% / ${1-j/d.len})`;
+      ctx.fillText(JUNK[(d.c+j+(d.age>>3))%JUNK.length],d.c*cell,rr*ch);
+    }
+    if(head-d.len>rows)drips.splice(k,1);
   }
-  // scanlines
-  ctx.fillStyle="rgba(0,0,0,.22)";
+  // soft scanlines
+  ctx.fillStyle="rgba(0,0,0,.18)";
   for(let y=0;y<H;y+=3)ctx.fillRect(0,y,W,1);
   requestAnimationFrame(frame);
 }
 addEventListener("pointermove",e=>{px=e.clientX;py=e.clientY});
-addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;burst=14});
+addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;glitch=16;nextGlitch=300});
 addEventListener("pointerleave",()=>{px=py=-999});
 addEventListener("resize",build);
-build();
-requestAnimationFrame(frame);
+build();requestAnimationFrame(frame);
 </script>
 </body>
 </html>
