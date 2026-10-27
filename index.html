@@ -59,16 +59,19 @@ function build(){
   off.width=cols;off.height=rows;
   octx.clearRect(0,0,cols,rows);
   octx.fillStyle="#fff";octx.textAlign="center";octx.textBaseline="middle";
-  const f=s=>"300 "+s+"px 'Helvetica Neue',Helvetica,Arial,'Liberation Sans','DejaVu Sans',sans-serif";
-  const L=["oana.zip"],X=1.6;
-  let fs=rows*.62;octx.font=f(fs);
-  const mw=()=>Math.max.apply(null,L.map(q=>octx.measureText(q).width))*X;
-  const maxw=cols*(W<H?.78:.7),maxh=rows*(W<H?.7:.6);
-  let k=Math.min(1,maxw/mw(),maxh/(fs*1.1*L.length));
-  fs*=k;octx.font=f(fs);
-  octx.save();octx.scale(X,1);
-  L.forEach((q,i)=>octx.fillText(q,cols/2/X,rows/2+(i-(L.length-1)/2)*fs*1.12));
-  octx.restore();
+  const f=s=>(W<H?"400 ":"300 ")+s+"px 'Helvetica Neue',Helvetica,Arial,'Liberation Sans','DejaVu Sans',sans-serif";
+  const X=1.6,maxw=cols*(W<H?.8:.7),maxh=rows*(W<H?.5:.6);
+  let fs=rows*.5;
+  const paint=()=>{octx.clearRect(0,0,cols,rows);octx.font=f(fs);octx.save();octx.scale(X,1);octx.fillText("oana.zip",cols/2/X,rows/2);octx.restore()};
+  octx.font=f(fs);
+  fs*=Math.min(1,maxw/(octx.measureText("oana.zip").width*X),maxh/(fs*1.1));
+  for(let n=0;n<4;n++){
+    paint();
+    const q=octx.getImageData(0,0,cols,rows).data;let lo=cols,hi=-1;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(q[(r*cols+c)*4+3]>40){if(c<lo)lo=c;if(c>hi)hi=c}
+    const w=hi-lo+1;if(hi<0||(w<=maxw*1.04&&lo>=1&&hi<=cols-2))break;
+    fs*=Math.min(.98,maxw/w)
+  }
   back.width=cols;back.height=rows;const bx=back.getContext("2d");bx.clearRect(0,0,cols,rows);bx.drawImage(off,0,0);bx.globalCompositeOperation="source-in";bx.fillStyle="#030305";bx.fillRect(0,0,cols,rows);
   const d=octx.getImageData(0,0,cols,rows).data;
   mask=new Float32Array(cols*rows);chars=new Array(cols*rows);
