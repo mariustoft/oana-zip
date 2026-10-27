@@ -49,29 +49,41 @@ let edge,rain=[],W,H,cell,ch,cols,rows,mask,chars,dpr,t=0,px=-999,py=-999,glitch
 let cur=0,wipe=null,ov=null,lid=[],nLet=0,waves=[],reboots=[],bolts=[],parts=[],rainBoost=0,flash=0,invert=0,shake=0;
 let bag=[],last="",clicks=0,combo=0,lastClick=-999,rainbow=0;
 function hash(a,b){const h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h)}
-function build(){
-  dpr=Math.min(devicePixelRatio||1,2);
-  const vv=window.visualViewport;W=Math.round(vv?vv.width:innerWidth);H=Math.round(Math.max(vv?vv.height:0,innerHeight));
-  cv.style.width=W+'px';cv.style.height=H+'px';
-  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  cell=Math.max(4,Math.min(Math.round(Math.min(W,H)/80),W/100));ch=cell*1.6;
-  cols=Math.ceil(W/cell);rows=Math.ceil(H/ch);
+const STY=[
+ ["300","'Helvetica Neue',Helvetica,Arial,'Liberation Sans','DejaVu Sans',sans-serif","",0],
+ ["400","Palatino,'Palatino Linotype','Book Antiqua',Georgia,serif","italic",0],
+ ["700","Georgia,'Times New Roman',serif","italic",0],
+ ["700","'Courier New',Courier,'Liberation Mono',monospace","",0],
+ ["400","Georgia,'Times New Roman',serif","",1],
+ ["400","Verdana,'DejaVu Sans',sans-serif","",0],
+ ["400","'Trebuchet MS',Verdana,sans-serif","italic",0],
+ ["400","Menlo,'Courier New',monospace","",1],
+ ["300","Avenir,'Avenir Next','Gill Sans',Helvetica,Arial,sans-serif","",1]
+];
+let sty=0;
+function glyphs(si){
+  const S=STY[si],TXT=S[3]?"OANA.ZIP":"oana.zip",X=1.6;
   off.width=cols;off.height=rows;
   octx.clearRect(0,0,cols,rows);
   octx.fillStyle="#fff";octx.textAlign="center";octx.textBaseline="middle";
-  const f=s=>(W<H?"400 ":"300 ")+s+"px 'Helvetica Neue',Helvetica,Arial,'Liberation Sans','DejaVu Sans',sans-serif";
-  const X=1.6,maxw=cols*(W<H?.8:.7),maxh=rows*(W<H?.5:.6);
-  let fs=rows*.5;
-  const paint=()=>{octx.clearRect(0,0,cols,rows);octx.font=f(fs);octx.save();octx.scale(X,1);octx.fillText("oana.zip",cols/2/X,rows/2);octx.restore()};
+  const wt=(W<H&&S[0]==="300")?"400":S[0];
+  const f=z=>(S[2]?S[2]+" ":"")+wt+" "+z+"px "+S[1];
+  const maxw=cols*(W<H?.8:.7),maxh=rows*(W<H?.5:.6);
+  let fs=rows*.5,dx=0,dy=0;
+  const paint=()=>{octx.clearRect(0,0,cols,rows);octx.font=f(fs);octx.save();octx.scale(X,1);octx.fillText(TXT,(cols/2+dx)/X,rows/2+dy);octx.restore()};
+  const box=()=>{const q=octx.getImageData(0,0,cols,rows).data;let x0=cols,x1=-1,y0=rows,y1=-1;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(q[(r*cols+c)*4+3]>40){if(c<x0)x0=c;if(c>x1)x1=c;if(r<y0)y0=r;if(r>y1)y1=r}
+    return{x0:x0,x1:x1,y0:y0,y1:y1,w:x1-x0+1,h:y1-y0+1}};
   octx.font=f(fs);
-  fs*=Math.min(1,maxw/(octx.measureText("oana.zip").width*X),maxh/(fs*1.1));
-  for(let n=0;n<4;n++){
-    paint();
-    const q=octx.getImageData(0,0,cols,rows).data;let lo=cols,hi=-1;
-    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(q[(r*cols+c)*4+3]>40){if(c<lo)lo=c;if(c>hi)hi=c}
-    const w=hi-lo+1;if(hi<0||(w<=maxw*1.04&&lo>=1&&hi<=cols-2))break;
-    fs*=Math.min(.98,maxw/w)
+  fs*=Math.min(1,maxw/(octx.measureText(TXT).width*X),maxh/(fs*1.1));
+  for(let n=0;n<7;n++){
+    paint();const b=box();if(b.x1<0)break;
+    const k=Math.min(maxw/b.w,maxh/b.h);
+    dx+=cols/2-(b.x0+b.x1+1)/2;dy+=rows/2-(b.y0+b.y1+1)/2;
+    if(Math.abs(k-1)<.03&&k>=.97)break;
+    fs*=k;
   }
+  paint();
   back.width=cols;back.height=rows;const bx=back.getContext("2d");bx.clearRect(0,0,cols,rows);bx.drawImage(off,0,0);bx.globalCompositeOperation="source-in";bx.fillStyle="#030305";bx.fillRect(0,0,cols,rows);
   const d=octx.getImageData(0,0,cols,rows).data;
   mask=new Float32Array(cols*rows);chars=new Array(cols*rows);
@@ -81,6 +93,15 @@ function build(){
     if(any){if(!inL){inL=true;nLet++}lid[c]=nLet-1}else inL=false}
   edge=new Uint8Array(cols*rows);
   for(let r=1;r<rows-1;r++)for(let c=1;c<cols-1;c++){const i=r*cols+c;if(mask[i]>.15&&(mask[i-1]<.15||mask[i+1]<.15||mask[i-cols]<.15||mask[i+cols]<.15))edge[i]=1}
+}
+function build(){
+  dpr=Math.min(devicePixelRatio||1,2);
+  const vv=window.visualViewport;W=Math.round(vv?vv.width:innerWidth);H=Math.round(Math.max(vv?vv.height:0,innerHeight));
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  cell=Math.max(4,Math.min(Math.round(Math.min(W,H)/80),W/100));ch=cell*1.6;
+  cols=Math.ceil(W/cell);rows=Math.ceil(H/ch);
+  glyphs(sty);
   tear=new Float32Array(rows);drips=[];t=0;wipe=null;waves=[];ov=null;reboots=[];bolts=[];parts=[];
   rain=Array.from({length:cols},()=>({y:Math.random()*-rows*1.5,v:.12+Math.random()*.3,len:6+Math.random()*16|0,on:Math.random()<.55}));
 }
@@ -219,6 +240,7 @@ function fire(clientX,clientY,quiet){
   last=bag.pop();FX[last](x,y);
   try{if(!quiet){unlockAudio();if(SFX[last])SFX[last]();SFX.tick();buzz(BUZZ[last])}}catch(e){}
   silent=false;
+  if(!quiet){try{let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;glyphs(sty);drips=[]}catch(e){}}
   // click counter: milestones and combos
   if(!quiet){
     clicks++;combo=(t-lastClick<32)?combo+1:1;lastClick=t;
