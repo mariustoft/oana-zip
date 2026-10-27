@@ -52,19 +52,19 @@ function build(){
   const vv=window.visualViewport;W=Math.round(vv?vv.width:innerWidth);H=Math.round(Math.max(vv?vv.height:0,innerHeight));
   cv.style.width=W+'px';cv.style.height=H+'px';
   cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  cell=Math.max(7,Math.round(Math.min(W,H)/70));ch=cell*1.6;
+  cell=Math.max(4.5,Math.min(Math.round(Math.min(W,H)/70),W/90));ch=cell*1.6;
   cols=Math.ceil(W/cell);rows=Math.ceil(H/ch);
   off.width=cols;off.height=rows;
   octx.clearRect(0,0,cols,rows);
   octx.fillStyle="#fff";octx.textAlign="center";octx.textBaseline="middle";
   const f=s=>"900 "+s+"px Impact,Haettenschweider,'Arial Black',sans-serif";
-  let fs=rows*.7;octx.font=f(fs);
-  const tw=octx.measureText("oana.zip").width,max=cols*.92;
+  let fs=rows*.56;octx.font=f(fs);
+  const tw=octx.measureText("oana.zip").width,max=cols*(W<H?.9:.78);
   if(tw>max){fs*=max/tw;octx.font=f(fs)}
   octx.fillText("oana.zip",cols/2,rows/2);
   const d=octx.getImageData(0,0,cols,rows).data;
   mask=new Float32Array(cols*rows);chars=new Array(cols*rows);
-  for(let i=0;i<mask.length;i++){mask[i]=d[i*4+3]/255;chars[i]=RAMP[Math.min(RAMP.length-1,mask[i]*RAMP.length|0)]}
+  for(let i=0;i<mask.length;i++){mask[i]=d[i*4+3]/255;chars[i]=mask[i]<.15?" ":RAMP[Math.min(RAMP.length-1,6+(mask[i]*(RAMP.length-6)|0))]}
   lid=new Int16Array(cols).fill(-1);nLet=0;let inL=false;
   for(let c=0;c<cols;c++){let any=false;for(let r=0;r<rows;r++)if(mask[r*cols+c]>.15){any=true;break}
     if(any){if(!inL){inL=true;nLet++}lid[c]=nLet-1}else inL=false}
@@ -77,6 +77,60 @@ function themeAt(c,r){
   return d<(t-wipe.t0)*2.6?THEMES[wipe.to]:THEMES[wipe.from];
 }
 function rj(){return JUNK[Math.random()*JUNK.length|0]}
+// ---------- optional extras: haptics, sound, tilt (each one checked, none ask permission) ----------
+const RM=!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
+function buzz(p){try{if(navigator.vibrate)navigator.vibrate(p)}catch(e){}}
+let AC=null,master=null,muted=false,silent=false;
+function audio(){
+  if(AC)return AC;
+  try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
+    AC=new C();master=AC.createGain();master.gain.value=.13;master.connect(AC.destination)}catch(e){AC=null}
+  return AC;
+}
+function unlockAudio(){try{const a=audio();if(a&&a.state==="suspended"&&a.resume)a.resume().catch(function(){})}catch(e){}}
+function tone(f,d,type,to,vol,delay){try{
+  if(!AC||muted||silent||AC.state!=="running")return;
+  const T=AC.currentTime+(delay||0),o=AC.createOscillator(),g=AC.createGain();
+  o.type=type||"sine";o.frequency.setValueAtTime(f,T);if(to)o.frequency.exponentialRampToValueAtTime(to,T+d);
+  g.gain.setValueAtTime(vol||.5,T);g.gain.exponentialRampToValueAtTime(.0001,T+d);
+  o.connect(g);g.connect(master);o.start(T);o.stop(T+d+.02)}catch(e){}}
+function noise(d,vol,f0,f1,delay){try{
+  if(!AC||muted||silent||AC.state!=="running")return;
+  const n=Math.max(1,AC.sampleRate*d|0),b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);
+  for(let i=0;i<n;i++)a[i]=Math.random()*2-1;
+  const T=AC.currentTime+(delay||0),s=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();
+  s.buffer=b;fl.type="bandpass";fl.frequency.setValueAtTime(f0,T);fl.frequency.exponentialRampToValueAtTime(f1,T+d);
+  g.gain.setValueAtTime(vol,T);g.gain.exponentialRampToValueAtTime(.0001,T+d);
+  s.connect(fl);fl.connect(g);g.connect(master);s.start(T);s.stop(T+d+.02)}catch(e){}}
+const SFX={
+  shockwave(){noise(.7,.9,2400,200);tone(110,.6,"sine",40,.8)},
+  reboot(){[0,1,2,3,4,5].forEach(function(i){tone(300*Math.pow(1.26,i),.12,"square",null,.18,i*.07)})},
+  explode(){noise(.9,1,1800,90);tone(90,.5,"sawtooth",30,.6)},
+  lightning(){noise(.12,1,6000,3000);noise(.8,.7,900,60,.05);tone(60,.7,"sine",30,.8,.05)},
+  surge(){tone(120,.9,"sawtooth",900,.25);noise(.9,.35,500,5000)},
+  invert(){tone(880,.1,"square",110,.3);tone(110,.35,"square",880,.25,.1)},
+  colors(){[0,4,7,12].forEach(function(n,i){tone(440*Math.pow(2,n/12),.35,"triangle",null,.35,i*.06)})},
+  glitchstorm(){for(let i=0;i<9;i++)tone(200+Math.random()*1800,.05,"square",null,.25,i*.045)}
+};
+const BUZZ={shockwave:[25,40,60],reboot:[15,30,15,30,15,30,40],explode:[90,40,60],lightning:[120,30,40,30,200],surge:[20,20,30,20,40,20,60,20,90],invert:[60,40,60],colors:[20,30,20,30,20],glitchstorm:[10,15,10,15,10,15,10,15,10,15,10,15]};
+// tilt: gyroscope where it needs no permission, otherwise pointer / finger position
+let tiltX=0,tiltY=0,tgtX=0,tgtY=0,motionLive=false,lastShake=0,lastMag=0,lastInput=0;
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+try{
+  const needsAsk=window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==="function"; // iOS: skipped on purpose, it would show a pop-up
+  if(!needsAsk){
+    if(window.DeviceOrientationEvent)addEventListener("deviceorientation",function(e){
+      if(e.gamma==null||e.beta==null)return;
+      const rot=(screen.orientation&&screen.orientation.angle)||0;let gx=e.gamma,gy=e.beta-45;
+      if(rot===90){gx=e.beta-45;gy=-e.gamma}else if(rot===270||rot===-90){gx=-(e.beta-45);gy=e.gamma}
+      motionLive=true;tgtX=clamp(gx/30,-1,1);tgtY=clamp(gy/30,-1,1)});
+    if(window.DeviceMotionEvent)addEventListener("devicemotion",function(e){
+      const a=e.accelerationIncludingGravity;if(!a||a.x==null)return;
+      const mag=Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z),d=Math.abs(mag-lastMag);lastMag=mag;
+      const now=Date.now();
+      if(d>16&&now-lastShake>1200){lastShake=now;lastInput=t;fire(Math.random()*W,Math.random()*H,true)}});
+  }
+}catch(e){}
 // ---------- random letter colours ----------
 function palette(n){
   const base=Math.random()*360,kind=Math.random()*4|0,out=[];
@@ -118,7 +172,8 @@ const FX={
   glitchstorm(x,y){glitch=50;nextGlitch=400;shake=18}
 };
 const NAMES=Object.keys(FX);
-function fire(clientX,clientY){
+function fire(clientX,clientY,quiet){
+  silent=!!quiet;
   const x=Math.max(0,Math.min(cols-1,clientX/cell|0)),y=Math.max(0,Math.min(rows-1,clientY/ch|0));
   // new theme wipes outward from the click
   if(wipe)cur=wipe.to;
@@ -127,6 +182,8 @@ function fire(clientX,clientY){
   // pick next effect from a shuffled bag so they don't repeat
   if(!bag.length){bag=NAMES.slice().sort(()=>Math.random()-.5);if(bag[bag.length-1]===last)bag.reverse()}
   last=bag.pop();FX[last](x,y);
+  try{if(!quiet){unlockAudio();if(SFX[last])SFX[last]();tone(1200,.04,"square",null,.15);buzz(BUZZ[last])}}catch(e){}
+  silent=false;
   // small sparkle burst on every click
   for(let i=0;i<18;i++){const a=Math.random()*Math.PI*2,s=1+Math.random()*4;
     parts.push({x:clientX,y:clientY,vx:Math.cos(a)*s,vy:Math.sin(a)*s,g:.03,life:30+Math.random()*30,max:60,ch:rj(),hue:Math.random()})}
@@ -134,6 +191,10 @@ function fire(clientX,clientY){
 // ---------- main loop ----------
 function frame(){
   t++;
+  if(!motionLive){tgtX=px>-900?clamp((px/W-.5)*2,-1,1):0;tgtY=py>-900?clamp((py/H-.5)*2,-1,1):0}
+  tiltX+=(tgtX-tiltX)*.08;tiltY+=(tgtY-tiltY)*.08;
+  if(RM){shake=0;flash=Math.min(flash,.06);invert=0}
+  if(t-lastInput>60*25&&(t-lastInput)%(60*12)===0){fire(Math.random()*W,Math.random()*H,true)}
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.fillStyle="#060608";ctx.fillRect(0,0,W,H);
   if(shake>0){shake*=.9;if(shake<.3)shake=0;ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake)}
@@ -157,10 +218,12 @@ function frame(){
       const rr=Math.floor(d.y)-j;if(rr<0||rr>=rows)continue;
       const f=1-j/len,th=themeAt(c,rr);
       ctx.fillStyle=j==0?`hsl(${th.rh} ${th.s?60:0}% 88% / ${.55+rainBoost*.4})`:`hsl(${th.rh} ${th.s?100:0}% 58% / ${(.04+.2*f*f)*(1+rainBoost*1.6)})`;
-      ctx.fillText(JUNK[(c*7+rr*3+(t>>3)*(j+1))%JUNK.length],c*cell,rr*ch);
+      ctx.fillText(JUNK[(c*7+rr*3+(t>>3)*(j+1))%JUNK.length],c*cell-tiltX*cell*2.2+(rr-rows/2)*tiltX*cell*.22,rr*ch-tiltY*ch*.6);
     }
     if(d.y-len>rows){d.y=-Math.random()*20;d.v=.12+Math.random()*.3;d.len=6+Math.random()*16|0;d.on=Math.random()<.7}
   }
+  // soft glow of the word shape underneath, makes it readable
+  try{ctx.globalAlpha=.13;ctx.drawImage(off,tiltX*cell*2.2,tiltY*ch*.8,W,H);ctx.globalAlpha=1}catch(e){}
   // ---- letters + background ----
   for(let r=0;r<rows;r++){
     for(let c=0;c<cols;c++){
@@ -187,13 +250,13 @@ function frame(){
         if(age<125&&dd>(age-8)*1.9)scr=true}
       const resolved=c/cols<decode*1.15-.1;
       if(!resolved||scr){ctx.fillStyle=`hsl(${th.h} ${th.s?60:0}% 75% / .55)`;ctx.fillText(rj(),c*cell,r*ch);continue}
-      if(Math.random()<.004)chars[i]=RAMP[Math.min(RAMP.length-1,(m*RAMP.length+Math.random()*3)|0)];
+      if(Math.random()<.004)chars[i]=RAMP[Math.min(RAMP.length-1,6+(m*(RAMP.length-6)+Math.random()*2|0))];
       let chr=chars[i];
       const dist=Math.hypot(c-mx,(r-my)*1.6),near=dist<8?1-dist/8:0;
       if(near>0&&Math.random()<near*.6)chr=rj();
       if(ring>.3&&Math.random()<ring)chr=rj();
       const band=Math.max(0,1-Math.abs(c-bandX)/7);
-      const hue=(th.h+th.a*Math.sin(c*.035+r*.03+t*.006)+360)%360;
+      const hue=(th.h+th.a*Math.sin(c*.035+r*.03+t*.006)+tiltX*28+360)%360;
       let light=Math.min(96,th.l+band*32+near*20+ring*34),hue2=hue,sat2=th.s;
       if(ov){const age=t-ov.t0;if(age<ov.dur){
         const L=lid[c];
@@ -202,7 +265,7 @@ function frame(){
         hue2=(h+Math.sin(r*.12+c*.05)*10+360)%360;sat2=ov.sat;
         light=Math.min(96,ov.lit+band*26+near*16+ring*30-Math.max(0,(age-ov.dur+90)/90)*0);
       }else ov=null}
-      let x=c*cell+tear[r],y=r*ch+near*Math.sin(t*.2+c)*2+ring*Math.sin(t*.5+c)*3;
+      let x=c*cell+tear[r]+tiltX*cell*2.2+(r-rows/2)*tiltX*cell*.2,y=r*ch+tiltY*ch*.8+near*Math.sin(t*.2+c)*2+ring*Math.sin(t*.5+c)*3;
       if(g){
         ctx.globalCompositeOperation="lighter";
         ctx.fillStyle="rgba(255,40,210,.8)";ctx.fillText(chr,x-4,y);
@@ -253,14 +316,26 @@ function frame(){
   if(flash>0.01){ctx.fillStyle=`rgba(255,255,255,${flash})`;ctx.fillRect(0,0,W,H);flash*=.8}
   if(invert>0){invert--;const p=1-invert/26;ctx.globalCompositeOperation="difference";
     ctx.fillStyle=`rgba(255,255,255,${Math.sin(Math.PI*p)})`;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation="source-over"}
-  requestAnimationFrame(frame);
 }
+function loop(){try{frame()}catch(e){}requestAnimationFrame(loop)}
 // ---------- input ----------
-addEventListener("pointermove",e=>{px=e.clientX;py=e.clientY;
+addEventListener("pointermove",e=>{px=e.clientX;py=e.clientY;lastInput=t;if(hold&&Math.hypot(px-hx,py-hy)>14){clearTimeout(hold);hold=null}
+  
   if(e.buttons){for(let i=0;i<2;i++)parts.push({x:px+(Math.random()-.5)*10,y:py+(Math.random()-.5)*10,vx:(Math.random()-.5)*2,vy:Math.random()*-1.5,g:.03,life:35,max:35,ch:rj(),hue:Math.random()})}});
-addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;fire(e.clientX,e.clientY)});
+let hold=null,hx=0,hy=0;
+function finale(x,y){
+  try{unlockAudio();silent=false;
+    FX.shockwave(x/cell|0,y/ch|0);FX.explode(x/cell|0,y/ch|0);FX.lightning(x/cell|0,y/ch|0);
+    SFX.explode();SFX.lightning();SFX.colors();buzz([40,30,80,30,140,30,220])}catch(e){}
+}
+addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;lastInput=t;fire(e.clientX,e.clientY);
+  hx=px;hy=py;clearTimeout(hold);hold=setTimeout(()=>{finale(hx,hy);hold=null},700)});
+addEventListener("pointerup",()=>{clearTimeout(hold);hold=null});
+addEventListener("pointercancel",()=>{clearTimeout(hold);hold=null});
 addEventListener("pointerleave",()=>{px=py=-999});
-addEventListener("keydown",e=>{if(e.repeat||e.metaKey||e.ctrlKey)return;fire(Math.random()*W,Math.random()*H)});
+addEventListener("keydown",e=>{if(e.repeat||e.metaKey||e.ctrlKey)return;lastInput=t;
+  if(e.key==="m"||e.key==="M"){muted=!muted;return}
+  fire(Math.random()*W,Math.random()*H)});
 let _w=0,_h=0;
 function fit(){const vv=window.visualViewport,w=Math.round(vv?vv.width:innerWidth),h=Math.round(Math.max(vv?vv.height:0,innerHeight));
   if(w!==_w||h!==_h){_w=w;_h=h;const keep=t;build();t=Math.max(keep,110)}}
@@ -268,7 +343,7 @@ addEventListener("resize",fit);addEventListener("orientationchange",()=>setTimeo
 if(window.visualViewport)visualViewport.addEventListener("resize",fit);
 setInterval(fit,400);
 addEventListener("scroll",()=>scrollTo(0,0));
-build();_w=Math.round(window.visualViewport?visualViewport.width:innerWidth);_h=Math.round(Math.max(window.visualViewport?visualViewport.height:0,innerHeight));requestAnimationFrame(frame);
+build();_w=Math.round(window.visualViewport?visualViewport.width:innerWidth);_h=Math.round(Math.max(window.visualViewport?visualViewport.height:0,innerHeight));requestAnimationFrame(loop);
 </script>
 </body>
 </html>
