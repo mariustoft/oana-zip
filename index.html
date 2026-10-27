@@ -43,34 +43,34 @@ function build(){
 function hash(a,b){let h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h)}
 function frame(){
   t+=1;
-  ctx.fillStyle="rgba(5,5,7,.55)";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(5,5,7,.38)";ctx.fillRect(0,0,W,H);
   const ch=cell*1.6;
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;
   ctx.textBaseline="top";
-  if(burst<=0&&Math.random()<.018){burst=6+Math.random()*10|0}
-  if(burst>0){burst--;for(let k=0;k<4;k++){const r=Math.random()*rows|0;rowShift[r]=(Math.random()-.5)*14}}
-  else for(let r=0;r<rows;r++)rowShift[r]*=.5;
+  if(burst<=0&&Math.random()<.07){burst=8+Math.random()*18|0}
+  if(burst>0){burst--;for(let k=0;k<14;k++){const r=Math.random()*rows|0;rowShift[r]=(Math.random()-.5)*60}}
+  else for(let r=0;r<rows;r++){rowShift[r]*=.5;if(Math.random()<.01)rowShift[r]=(Math.random()-.5)*20}
   const mx=px/cell,my=py/ch;
-  const layers=[["#ff2bd6",-2.5],["#00e5ff",2.5],["#f4f4ff",0]];
+  const wob=4+Math.sin(t*.07)*3+(burst>0?Math.random()*14:0);const layers=[["#ff2bd6",-wob],["#00e5ff",wob],["#f4f4ff",0]];
   for(const [col,dx] of layers){
     ctx.fillStyle=col;
     ctx.globalCompositeOperation=col==="#f4f4ff"?"source-over":"lighter";
     ctx.globalAlpha=col==="#f4f4ff"?1:.75;
     for(let r=0;r<rows;r++){
-      const sh=rowShift[r];
+      const sh=rowShift[r]+Math.sin(t*.06+r*.35)*3;
       for(let c=0;c<cols;c++){
         const m=mask[r*cols+c];
         const dist=Math.hypot(c-mx,(r-my)*1.6);
         const near=dist<9?1-dist/9:0;
         if(m>.15){
-          const flick=hash(c+(t>>2),r)*.35+Math.sin(t*.05+c*.3+r*.5)*.15;
+          const flick=hash(c+t,r)*.5+Math.sin(t*.05+c*.3+r*.5)*.15;
           let v=Math.min(.999,m*.85+flick*.3+near*.6);
           let chr=RAMP[v*RAMP.length|0];
-          if(near>.25&&Math.random()<near)chr=NOISE[Math.random()*NOISE.length|0];
+          if(((near>.25&&Math.random()<near)||Math.random()<.015+(burst>0?.12:0)))chr=NOISE[Math.random()*NOISE.length|0];
           if(chr!==" ")ctx.fillText(chr,c*cell+dx+sh+(near?(Math.random()-.5)*near*10:0),r*ch+(near?(Math.random()-.5)*near*6:0));
         }else if(col==="#f4f4ff"){
           const n=hash(c,r);
-          const wave=Math.sin(c*.18+t*.03)+Math.cos(r*.25-t*.025);
+          const wave=Math.sin(c*.18+t*.09)+Math.cos(r*.25-t*.07);
           if(n>.93-.03*wave){
             ctx.globalAlpha=.10+.22*Math.abs(Math.sin(t*.02+n*40));
             ctx.fillStyle=n>.97?"#8a6bff":"#4a4a66";
@@ -83,7 +83,7 @@ function frame(){
   }
   ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";
   // glitch slice: copy a horizontal band and offset it
-  if(burst>0){
+  for(let q=0;q<(burst>0?4:0);q++){
     const sy=Math.random()*H|0,sh=10+Math.random()*60|0,ox=(Math.random()-.5)*60;
     ctx.drawImage(cv,0,sy*dpr,W*dpr,sh*dpr,ox,sy,W,sh);
   }
