@@ -59,7 +59,7 @@ function build(){
   off.width=cols;off.height=rows;
   octx.clearRect(0,0,cols,rows);
   octx.fillStyle="#fff";octx.textAlign="center";octx.textBaseline="middle";
-  const f=s=>"bold "+s+"px Helvetica,Arial,'Liberation Sans','DejaVu Sans',sans-serif";
+  const f=s=>"300 "+s+"px 'Helvetica Neue',Helvetica,Arial,'Liberation Sans','DejaVu Sans',sans-serif";
   const L=W<H?["oana.","zip"]:["oana.zip"],X=1.6;
   let fs=rows*.62;octx.font=f(fs);
   const mw=()=>Math.max.apply(null,L.map(q=>octx.measureText(q).width))*X;
