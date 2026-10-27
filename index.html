@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <title>oana.zip</title>
 <meta name="description" content="oana.zip">
 <meta property="og:type" content="website">
@@ -18,10 +18,10 @@
 <meta name="theme-color" content="#060608">
 
 <style>
-html,body{margin:0;height:100%;background:#060608;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-canvas{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+html,body{margin:0;width:100%;height:100%;height:100dvh;background:#060608;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+canvas{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;display:block;cursor:crosshair}
 h1{position:absolute;left:-9999px}
-.vig{pointer-events:none;position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8))}
+.vig{pointer-events:none;position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8))}
 </style>
 </head>
 <body>
@@ -49,7 +49,8 @@ let bag=[],last="";
 function hash(a,b){const h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h)}
 function build(){
   dpr=Math.min(devicePixelRatio||1,2);
-  W=innerWidth;H=innerHeight;
+  const vv=window.visualViewport;W=Math.round(vv?vv.width:innerWidth);H=Math.round(Math.max(vv?vv.height:0,innerHeight));
+  cv.style.width=W+'px';cv.style.height=H+'px';
   cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
   cell=Math.max(7,Math.round(Math.min(W,H)/70));ch=cell*1.6;
   cols=Math.ceil(W/cell);rows=Math.ceil(H/ch);
@@ -260,8 +261,14 @@ addEventListener("pointermove",e=>{px=e.clientX;py=e.clientY;
 addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;fire(e.clientX,e.clientY)});
 addEventListener("pointerleave",()=>{px=py=-999});
 addEventListener("keydown",e=>{if(e.repeat||e.metaKey||e.ctrlKey)return;fire(Math.random()*W,Math.random()*H)});
-addEventListener("resize",build);
-build();requestAnimationFrame(frame);
+let _w=0,_h=0;
+function fit(){const vv=window.visualViewport,w=Math.round(vv?vv.width:innerWidth),h=Math.round(Math.max(vv?vv.height:0,innerHeight));
+  if(w!==_w||h!==_h){_w=w;_h=h;const keep=t;build();t=Math.max(keep,110)}}
+addEventListener("resize",fit);addEventListener("orientationchange",()=>setTimeout(fit,200));
+if(window.visualViewport)visualViewport.addEventListener("resize",fit);
+setInterval(fit,400);
+addEventListener("scroll",()=>scrollTo(0,0));
+build();_w=Math.round(window.visualViewport?visualViewport.width:innerWidth);_h=Math.round(Math.max(window.visualViewport?visualViewport.height:0,innerHeight));requestAnimationFrame(frame);
 </script>
 </body>
 </html>
