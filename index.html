@@ -20,7 +20,7 @@ const cv=document.getElementById("c"),ctx=cv.getContext("2d");
 const off=document.createElement("canvas"),octx=off.getContext("2d",{willReadFrequently:true});
 const RAMP=" .:-=+*abxz#%@";
 const JUNK="01<>/\\|+*#%&=-_:;.~^";
-let W,H,cell,ch,cols,rows,mask,chars,dpr,t=0,px=-999,py=-999,glitch=0,nextGlitch=200,drips=[],tear;
+let rain=[],W,H,cell,ch,cols,rows,mask,chars,dpr,t=0,px=-999,py=-999,glitch=0,nextGlitch=200,drips=[],tear;
 function hash(a,b){const h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h)}
 function build(){
   dpr=Math.min(devicePixelRatio||1,2);
@@ -39,7 +39,7 @@ function build(){
   const d=octx.getImageData(0,0,cols,rows).data;
   mask=new Float32Array(cols*rows);chars=new Array(cols*rows);
   for(let i=0;i<mask.length;i++){mask[i]=d[i*4+3]/255;chars[i]=RAMP[Math.min(RAMP.length-1,mask[i]*RAMP.length|0)]}
-  tear=new Float32Array(rows);drips=[];t=0;
+  tear=new Float32Array(rows);drips=[];t=0;rain=Array.from({length:cols},(_,c)=>({y:Math.random()*-rows*1.5,v:.12+Math.random()*.3,len:6+Math.random()*16|0,on:Math.random()<.55}));
 }
 function frame(){
   t++;
@@ -54,6 +54,18 @@ function frame(){
   const cyc=(t%900)/900,bandX=-.2*cols+cyc*1.4*cols;
   const mx=px/cell,my=py/ch;
   const decode=Math.min(1,t/110); // intro: resolves left to right
+  // matrix rain, full screen, dim, behind the letters
+  for(let c=0;c<cols;c++){
+    const d=rain[c];if(!d.on){if(Math.random()<.004){d.on=true;d.y=-d.len}continue}
+    d.y+=d.v;
+    for(let j=0;j<d.len;j++){
+      const rr=Math.floor(d.y)-j;if(rr<0||rr>=rows)continue;
+      const f=1-j/d.len;
+      ctx.fillStyle=j==0?"rgba(210,255,235,.55)":`rgba(60,255,170,${.04+.2*f*f})`;
+      ctx.fillText(JUNK[(c*7+rr*3+(t>>3)*(j+1))%JUNK.length],c*cell,rr*ch);
+    }
+    if(d.y-d.len>rows){d.y=-Math.random()*20;d.v=.12+Math.random()*.3;d.len=6+Math.random()*16|0;d.on=Math.random()<.7}
+  }
   // background drift
   for(let r=0;r<rows;r++){
     for(let c=0;c<cols;c++){
