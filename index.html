@@ -31,7 +31,7 @@ const THEMES=[
   {h:0,a:0,s:0,l:82,rh:0}
 ];
 let rain=[],W,H,cell,ch,cols,rows,mask,chars,dpr,t=0,px=-999,py=-999,glitch=0,nextGlitch=200,drips=[],tear;
-let cur=0,wipe=null,waves=[],pulls=[],reboots=[],bolts=[],parts=[],rainBoost=0,flash=0,invert=0,shake=0;
+let cur=0,wipe=null,ov=null,lid=[],nLet=0,waves=[],reboots=[],bolts=[],parts=[],rainBoost=0,flash=0,invert=0,shake=0;
 let bag=[],last="";
 function hash(a,b){const h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h)}
 function build(){
@@ -51,7 +51,10 @@ function build(){
   const d=octx.getImageData(0,0,cols,rows).data;
   mask=new Float32Array(cols*rows);chars=new Array(cols*rows);
   for(let i=0;i<mask.length;i++){mask[i]=d[i*4+3]/255;chars[i]=RAMP[Math.min(RAMP.length-1,mask[i]*RAMP.length|0)]}
-  tear=new Float32Array(rows);drips=[];t=0;wipe=null;waves=[];pulls=[];reboots=[];bolts=[];parts=[];
+  lid=new Int16Array(cols).fill(-1);nLet=0;let inL=false;
+  for(let c=0;c<cols;c++){let any=false;for(let r=0;r<rows;r++)if(mask[r*cols+c]>.15){any=true;break}
+    if(any){if(!inL){inL=true;nLet++}lid[c]=nLet-1}else inL=false}
+  tear=new Float32Array(rows);drips=[];t=0;wipe=null;waves=[];ov=null;reboots=[];bolts=[];parts=[];
   rain=Array.from({length:cols},()=>({y:Math.random()*-rows*1.5,v:.12+Math.random()*.3,len:6+Math.random()*16|0,on:Math.random()<.55}));
 }
 function themeAt(c,r){
@@ -60,10 +63,28 @@ function themeAt(c,r){
   return d<(t-wipe.t0)*2.6?THEMES[wipe.to]:THEMES[wipe.from];
 }
 function rj(){return JUNK[Math.random()*JUNK.length|0]}
+// ---------- random letter colours ----------
+function palette(n){
+  const base=Math.random()*360,kind=Math.random()*4|0,out=[];
+  for(let i=0;i<n;i++){
+    let h;
+    if(kind===0)h=base+i*(300/n);                 // full rainbow sweep
+    else if(kind===1)h=base+(i%2?180:0)+i*9;       // complementary pair
+    else if(kind===2)h=base+(i%3)*120+i*6;         // triad
+    else h=base+i*137.5;                           // golden-angle spread
+    out.push(((h%360)+360)%360);
+  }
+  if(Math.random()<.5)out.reverse();
+  return out;
+}
+function recolor(cascade){
+  const sat=88+Math.random()*10,lit=60+Math.random()*6;
+  ov={t0:t,hues:palette(Math.max(1,nLet)),sat,lit,cascade:cascade?42:0,dur:520};
+}
 // ---------- click effects ----------
 const FX={
   shockwave(x,y){waves.push({x,y,t0:t});waves.push({x,y,t0:t+10});glitch=10},
-  implode(x,y){pulls.push({x,y,t0:t,dur:80});shake=14},
+  colors(x,y){recolor(true);glitch=8},
   reboot(x,y){reboots.push({x,y,t0:t})},
   explode(x,y){
     const px_=x*cell+cell/2,py_=y*ch;
@@ -105,7 +126,7 @@ function frame(){
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;
   ctx.textBaseline="top";
   if(wipe&&(t-wipe.t0)*2.6>Math.hypot(cols,rows*1.6)){cur=wipe.to;wipe=null}
-  waves=waves.filter(w=>t-w.t0<110);pulls=pulls.filter(p=>t-p.t0<p.dur);reboots=reboots.filter(r=>t-r.t0<130);
+  waves=waves.filter(w=>t-w.t0<110);reboots=reboots.filter(r=>t-r.t0<130);
   rainBoost*=.985;if(rainBoost<.02)rainBoost=0;
   if(glitch>0){glitch--;if(glitch%3==0){for(let k=0;k<5;k++)tear[Math.random()*rows|0]=(Math.random()-.5)*34}}
   else{for(let r=0;r<rows;r++)tear[r]=0;if(--nextGlitch<=0){glitch=14;nextGlitch=220+Math.random()*320}}
@@ -159,17 +180,22 @@ function frame(){
       if(ring>.3&&Math.random()<ring)chr=rj();
       const band=Math.max(0,1-Math.abs(c-bandX)/7);
       const hue=(th.h+th.a*Math.sin(c*.035+r*.03+t*.006)+360)%360;
-      const light=Math.min(96,th.l+band*32+near*20+ring*34);
+      let light=Math.min(96,th.l+band*32+near*20+ring*34),hue2=hue,sat2=th.s;
+      if(ov){const age=t-ov.t0;if(age<ov.dur){
+        const L=lid[c];
+        let h=ov.hues[L<0?0:L%ov.hues.length];
+        if(age<ov.cascade&&((age/5|0)+L)%3===0)h=(h+(hash(L,age/5|0)*360))%360; // quick colour shuffle before it settles
+        hue2=(h+Math.sin(r*.12+c*.05)*10+360)%360;sat2=ov.sat;
+        light=Math.min(96,ov.lit+band*26+near*16+ring*30-Math.max(0,(age-ov.dur+90)/90)*0);
+      }else ov=null}
       let x=c*cell+tear[r],y=r*ch+near*Math.sin(t*.2+c)*2+ring*Math.sin(t*.5+c)*3;
-      for(let k=0;k<pulls.length;k++){const p=pulls[k],pr=(t-p.t0)/p.dur,kk=.75*Math.sin(Math.PI*pr);
-        x+=(p.x-c)*cell*kk;y+=(p.y-r)*ch*kk}
       if(g){
         ctx.globalCompositeOperation="lighter";
         ctx.fillStyle="rgba(255,40,210,.8)";ctx.fillText(chr,x-4,y);
         ctx.fillStyle="rgba(0,230,255,.8)";ctx.fillText(chr,x+4,y);
         ctx.globalCompositeOperation="source-over";
       }
-      ctx.fillStyle=`hsl(${hue} ${th.s}% ${light}%)`;
+      ctx.fillStyle=`hsl(${hue2} ${sat2}% ${light}%)`;
       ctx.fillText(chr,x,y);
       if(Math.random()<.00012&&(r+1>=rows||mask[i+cols]<.15))drips.push({c,r:r+1,len:4+Math.random()*10|0,hue,age:0});
     }
