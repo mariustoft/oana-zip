@@ -242,13 +242,13 @@ function faceInit(){const a=new Float32Array(FC*FRn),P=new Array(FC*FRn);
     P[i]={a:an,sx:Math.cos(an)*di,sy:Math.sin(an)*di*.8,ex:Math.cos(an2)*di2,ey:Math.sin(an2)*di2*.8-.15,s:Math.random()*6.28,n:Math.random(),
       d:Math.min(.999,.5*Math.random()+.35*d+.15*(r/(FRn-1))),d2:Math.min(.999,.55*Math.random()+.3*(1-d)+.15*(1-r/(FRn-1)))}}
   face.th=a;face.pt=P}
-// the face is toggled by 3 quick taps in a row on the dot: 3 to reveal, 3 more to dissolve
+// one tap on the dot brings the face in; one more tap (on the face) dissolves it
 function faceHit(onDot,cx,cy){
   if(face.st==="hold"&&face.box&&cx>=face.box[0]&&cx<=face.box[2]&&cy>=face.box[1]&&cy<=face.box[3])onDot=true;
   if(face.st==="in"||face.st==="out")return;
   if(!onDot){face.cnt=0;return}
   face.cnt=(face.cnt||0)+1;
-  if(face.cnt<3){try{buzz([12])}catch(e){}return}
+  
   face.cnt=0;
   if(face.st==="hold"){face.st="out";face.t0=t;try{buzz([30,40,30,40,30,40,90])}catch(e){}}
   else{face.st="in";face.on=true;face.t0=t;faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
@@ -256,7 +256,7 @@ function faceHit(onDot,cx,cy){
 function drawFace(){
   if(!face.on)return;
   if(!face.pt)faceInit();
-  const age=t-face.t0,IN=900,OUT=720;
+  const age=t-face.t0,IN=900,OUT=1100;
   let dim=1,mv=0;
   if(face.st==="in"){if(age>=IN){face.st="hold";face.t0=t;return}dim=Math.min(1,age/140);mv=1}
   else if(face.st==="out"){if(age>=OUT){face.on=false;face.st="off";return}dim=age>OUT*.85?Math.max(0,1-(age-OUT*.85)/(OUT*.15)):1;mv=2}
