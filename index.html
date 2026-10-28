@@ -94,7 +94,11 @@ function glyphs(si){
   try{const b2=box();octx.font=f(fs);
    const tot=octx.measureText(TXT).width,pre=octx.measureText(TXT.slice(0,4)).width,dw=octx.measureText(".").width;
    const sx=(cols/2+dx)/X-tot/2+pre+dw/2;
-   dot={x:sx*X*cell,y:(b2.y1+1-Math.max(1,b2.h*.06))*ch}}catch(e){dot={x:cols/2*cell,y:rows/2*ch}}
+   dot={x:sx*X*cell,y:(b2.y1+1-Math.max(1,b2.h*.06))*ch};
+   // refine: the real dot is the filled cells in the narrow column window around its centre
+   const cc=sx*X,hw=Math.max(1.5,dw*X*.3);let sr=0,sc=0,n=0;
+   for(let r=0;r<rows;r++)for(let c=Math.max(0,Math.floor(cc-hw));c<=Math.min(cols-1,Math.ceil(cc+hw));c++)if(mask[r*cols+c]>.4){sr+=r;sc+=c;n++}
+   if(n>2)dot={x:(sc/n+.5)*cell,y:(sr/n+.5)*ch}}catch(e){dot={x:cols/2*cell,y:rows/2*ch}}
   edge=new Uint8Array(cols*rows);
   for(let r=1;r<rows-1;r++)for(let c=1;c<cols-1;c++){const i=r*cols+c;if(mask[i]>.15&&(mask[i-1]<.15||mask[i+1]<.15||mask[i-cols]<.15||mask[i+cols]<.15))edge[i]=1}
 }
@@ -298,7 +302,7 @@ function drawFace(){
 }
 function fire(clientX,clientY,quiet){
   silent=!!quiet;
-  const onDot=!quiet&&dot&&Math.hypot(clientX-dot.x,clientY-dot.y)<=Math.max(34,cell*3);
+  const onDot=!quiet&&dot&&Math.hypot(clientX-dot.x,clientY-dot.y)<=Math.max(46,cell*4);
   const x=Math.max(0,Math.min(cols-1,clientX/cell|0)),y=Math.max(0,Math.min(rows-1,clientY/ch|0));
   // new theme wipes outward from the click
   if(wipe)cur=wipe.to;
