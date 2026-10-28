@@ -234,51 +234,64 @@ function supernova(x,y){
 }
 
 // ---------- hidden portrait: ~30 fast taps in a row and a face slowly builds out of the glitch ----------
-const FACE="                     .      .  ..  ..:  :,,..,..                            |                  .,:;     .,  :,.  .;  ~--,,::,.  .                        |                  ;-~-   . ,, ,;:: .,~  ~*+-,;;;;. ,,..                     |                 -==++  .::;,.-+-;.,:*  ;#+=;-~-=,,::.,,                    |                 :+*+;  -=;;:;***+;;:o:  #o++-+==;;;-:;:                    |                   .-  .=+:;;~oOOx-+-**. xx*x-~**=+=~-~:.                   |            .,::;.     :o~,;;oxOOo-*=o#-,oOoo--*+o+~-~~.   .                |            ,;; ..     .=,:;-ooOo+~**x#~:-*++==*oo=~+=;,.  ,                |              , =;.  ,::;,;;~oxO*=+oxOO=--=*=+*xx=~o+::.  -, ,              |          .++    .;;.,:;;;-~~oo*+*x#O#*+;:-*--;,. .,     .: .,              |   ,-~=,.oO@,  .,  ::,,:;-===xoxO#%%Ox+-...                 ..              |  :-=++=,~x@o     ~o.;,:;-~==oxOO##xo+=~~-;::,,:-++***==;,                  | ,-=+oxx~,,-*O:,:x@O+-*~-~=+oO####Oo*=~-;;::,,:;-=-;o##%#@@-                | -~+*xO%Oo*~=:=OO*x*=*%#+++oO@@@@@#o+~-;::,,:+*@#* :==+=oO%%~        .      |.~+*xO%@@%x**==+=~~+oOOOo**x@@@@@@#*=--;:::::,  .  .:, ,oo**o:.     .       |.~+oO#@@@@@%#OxxxxO##%%#x*oO@@@@@@#**oxx~:,;#,      ,     .;+;    .      .  |.~+x#%@@@@@@@@@%##%@@@%#xox@@@@@@@#oO%@@o=~+@o     ~@-,    .=.  ...      .. |,=+o#@@@@@@@@@@@@@@@@@#xooO@@@@@@@#O%@@%#o=~+##-:;x@@%~;;~*@=  ,;.  .=   ...|,~+o#@@@@@@@@@@@@@@@@#Ooo*x@@@@@@@OO@@@@@O*~-=++;+-;::~x@@@o .;-,   +.   ...|,-=*O#%@@@@@@@@@@@@%#xo**+o%@@@@####@@@@@@%xo**=-o++x=O%@@@+==:,  +,O ;, ...|,~+oO##@@@@@@@@@@@@#x*+===x@@@@%xxxO#@@@@@@@#######%@@@@@@@xO=;  +O;O :  ,..|,-=oOO#@@@@@@@@@@@@Oo=--~=o@@@%o++*oO#@@@@@@@@@@@@@@@@@@@@%xx=.  =;+o .  -..|,;=*xO##%@@@@@@@@@#x=;;-~+*@@%o+~~=+x%@@@@@@@@@@@@@@@@@@@%OoO+     %= -  = .|;,~*x##%@@@@@@@@@%O~--~-=*O@@O*=~--+x%@@@@@@@@@@@@@@@@@@@x*xx      %~ ~  + .|=,-+oO#%@@@@@@@@@@x~===~+O@@@#*==~:+O%@@@@@@@@@@@@@@@@@@%+o%       @- *  ,..|=;:~oO#%@@@@@@@@@@~*o*==+x@@@Oo+==~=#%@@@@@@@@@@@@@@@@@#O*#;      ,@--o. ..,|~,:=*ox#%@@@@@@@@@=,.,-+*oxO#x*+++++%@@@@@@@@@@@@@@@@%Oxo%+        #+=%, :,,|: :=***O#%@@@@@@@@O+; ,;=+=++=--+*=+@@@@@@@@@@@@@@@%#xoo##         x::o: ,,,|:  +*xxO##%%@@@@@@@%#x+-:,,,:.   ,;x@@@@@@@@@@@@@@#Oxo*x@.         x;O*,.,,,|=  :x#O#####%@@@@@@@%%%%%O*+ooo+==x@@@@@@@@%#%%%#Oxo*+=x%           *%~; .::|:   +xxO##OxO##OOO#OO#@@@@@@%OxxO#%%@@@%%%#Oxxxxo+++=--#@.          .O*O .:;|     *oxO#xooxOxxOOOOO#x**x#%#OOO%#######OOxooo*=~~~;;+%@%.          +OO ,,:|      ~=*+==~~=*-;:,,.:-===*O##OOOOOOOxOxxooo*+==~--~@@@@@o          OO+.,.:|       ==~---:       ..,:,,,:~o##xxxxOxxoooo+==~-:;~  :x@@@      .   .x*,..,|        ~~-;-;   ..         .. ,o%#Oo*+**o*+=~-;:;+#%o  .O@o      .   o*...,|         ;;;::,  .:~;:,.         .:~=~~==+=~~-;:~*O#O%#   ,o*         *=.,..|         ,:::::,    ::--,;;:-=-,  .:;-----~;::;+OxO##%@#              =-.,. |        .,:-::;;;,         ..    ,;;;;;;;;:,:;=oxO#%%@@@.             ;;..  |       ..,:-~,,;--;-;::,,,    .:;;;;;:::,,:;;-=+oO#%%%%#                    |         ,:-~-,,:;--~~~=++*+*++=---;::;;-~--~=+=oxxo*Ox;                    |         .:;---,.,:;-~~~==++**+=-;;~=+**+-;=++++oxo**oo,                    |         .,,:;;:,...,:;;--~~=~~-;=*oo**+=~+oo***oxoo**O.                    |           .,,::,,,::,....,,:;;;-+oxxo*++*ooooooooo**o*                     |             ..,,,::-~==+**o*+=+ooOOxo***o*oo***++++=*-                     ",FR=" .,:;-~=+*oxO#%@",FRows=FACE.split("|").slice(8,28).map(function(r){return r.slice(5,61)}),FC=FRows[0].length,FRn=FRows.length;
-let face={on:false,t0:0,streak:0,lastC:-999,th:null};
+const FACE="                     .      .  ..  ..:  :,,..,..                            |                  .,:;     .,  :,.  .;  ~--,,::,.  .                        |                  ;-~-   . ,, ,;:: .,~  ~*+-,;;;;. ,,..                     |                 -==++  .::;,.-+-;.,:*  ;#+=;-~-=,,::.,,                    |                 :+*+;  -=;;:;***+;;:o:  #o++-+==;;;-:;:                    |                   .-  .=+:;;~oOOx-+-**. xx*x-~**=+=~-~:.                   |            .,::;.     :o~,;;oxOOo-*=o#-,oOoo--*+o+~-~~.   .                |            ,;; ..     .=,:;-ooOo+~**x#~:-*++==*oo=~+=;,.  ,                |              , =;.  ,::;,;;~oxO*=+oxOO=--=*=+*xx=~o+::.  -, ,              |          .++    .;;.,:;;;-~~oo*+*x#O#*+;:-*--;,. .,     .: .,              |   ,-~=,.oO@,  .,  ::,,:;-===xoxO#%%Ox+-...                 ..              |  :-=++=,~x@o     ~o.;,:;-~==oxOO##xo+=~~-;::,,:-++***==;,                  | ,-=+oxx~,,-*O:,:x@O+-*~-~=+oO####Oo*=~-;;::,,:;-=-;o##%#@@-                | -~+*xO%Oo*~=:=OO*x*=*%#+++oO@@@@@#o+~-;::,,:+*@#* :==+=oO%%~        .      |.~+*xO%@@%x**==+=~~+oOOOo**x@@@@@@#*=--;:::::,  .  .:, ,oo**o:.     .       |.~+oO#@@@@@%#OxxxxO##%%#x*oO@@@@@@#**oxx~:,;#,      ,     .;+;    .      .  |.~+x#%@@@@@@@@@%##%@@@%#xox@@@@@@@#oO%@@o=~+@o     ~@-,    .=.  ...      .. |,=+o#@@@@@@@@@@@@@@@@@#xooO@@@@@@@#O%@@%#o=~+##-:;x@@%~;;~*@=  ,;.  .=   ...|,~+o#@@@@@@@@@@@@@@@@#Ooo*x@@@@@@@OO@@@@@O*~-=++;+-;::~x@@@o .;-,   +.   ...|,-=*O#%@@@@@@@@@@@@%#xo**+o%@@@@####@@@@@@%xo**=-o++x=O%@@@+==:,  +,O ;, ...|,~+oO##@@@@@@@@@@@@#x*+===x@@@@%xxxO#@@@@@@@#######%@@@@@@@xO=;  +O;O :  ,..|,-=oOO#@@@@@@@@@@@@Oo=--~=o@@@%o++*oO#@@@@@@@@@@@@@@@@@@@@%xx=.  =;+o .  -..|,;=*xO##%@@@@@@@@@#x=;;-~+*@@%o+~~=+x%@@@@@@@@@@@@@@@@@@@%OoO+     %= -  = .|;,~*x##%@@@@@@@@@%O~--~-=*O@@O*=~--+x%@@@@@@@@@@@@@@@@@@@x*xx      %~ ~  + .|=,-+oO#%@@@@@@@@@@x~===~+O@@@#*==~:+O%@@@@@@@@@@@@@@@@@@%+o%       @- *  ,..|=;:~oO#%@@@@@@@@@@~*o*==+x@@@Oo+==~=#%@@@@@@@@@@@@@@@@@#O*#;      ,@--o. ..,|~,:=*ox#%@@@@@@@@@=,.,-+*oxO#x*+++++%@@@@@@@@@@@@@@@@%Oxo%+        #+=%, :,,|: :=***O#%@@@@@@@@O+; ,;=+=++=--+*=+@@@@@@@@@@@@@@@%#xoo##         x::o: ,,,|:  +*xxO##%%@@@@@@@%#x+-:,,,:.   ,;x@@@@@@@@@@@@@@#Oxo*x@.         x;O*,.,,,|=  :x#O#####%@@@@@@@%%%%%O*+ooo+==x@@@@@@@@%#%%%#Oxo*+=x%           *%~; .::|:   +xxO##OxO##OOO#OO#@@@@@@%OxxO#%%@@@%%%#Oxxxxo+++=--#@.          .O*O .:;|     *oxO#xooxOxxOOOOO#x**x#%#OOO%#######OOxooo*=~~~;;+%@%.          +OO ,,:|      ~=*+==~~=*-;:,,.:-===*O##OOOOOOOxOxxooo*+==~--~@@@@@o          OO+.,.:|       ==~---:       ..,:,,,:~o##xxxxOxxoooo+==~-:;~  :x@@@      .   .x*,..,|        ~~-;-;   ..         .. ,o%#Oo*+**o*+=~-;:;+#%o  .O@o      .   o*...,|         ;;;::,  .:~;:,.         .:~=~~==+=~~-;:~*O#O%#   ,o*         *=.,..|         ,:::::,    ::--,;;:-=-,  .:;-----~;::;+OxO##%@#              =-.,. |        .,:-::;;;,         ..    ,;;;;;;;;:,:;=oxO#%%@@@.             ;;..  |       ..,:-~,,;--;-;::,,,    .:;;;;;:::,,:;;-=+oO#%%%%#                    |         ,:-~-,,:;--~~~=++*+*++=---;::;;-~--~=+=oxxo*Ox;                    |         .:;---,.,:;-~~~==++**+=-;;~=+**+-;=++++oxo**oo,                    |         .,,:;;:,...,:;;--~~=~~-;=*oo**+=~+oo***oxoo**O.                    |           .,,::,,,::,....,,:;;;-+oxxo*++*ooooooooo**o*                     |             ..,,,::-~==+**o*+=+ooOOxo***o*oo***++++=*-                     ",FR=" .,:;-~=+*oxO#%@",FRows=FACE.split("|").slice(2,24).map(function(r){return r.slice(5,61)}),FC=FRows[0].length,FRn=FRows.length;
+let face={st:"off",cnt:0,on:false,t0:0,streak:0,lastC:-999,th:null};
 function faceInit(){const a=new Float32Array(FC*FRn);
-  for(let r=0;r<FRn;r++)for(let c=0;c<FC;c++){const d=Math.hypot((c-FC/2)/(FC/2),(r-FRn*.5)/(FRn/2)),n=hash(c*1.7,r*2.3);a[r*FC+c]=Math.min(.999,.55*n+.45*Math.min(1,d))}
+  for(let r=0;r<FRn;r++)for(let c=0;c<FC;c++){const d=Math.min(1,Math.hypot((c-FC/2)/(FC/2),(r-FRn*.5)/(FRn/2))),n=hash(c*1.7,r*2.3);a[r*FC+c]=Math.min(.999,.58*(r/(FRn-1))+.27*n+.15*d)}
   face.th=a}
-function faceHit(onDot){ // only the dot between oana and zip reveals the face
-  if(!onDot||face.on)return;
-  face.on=true;face.t0=t;if(!face.th)faceInit();try{buzz([40,60,40,60,120])}catch(e){}
+// the face is toggled by 3 quick taps in a row on the dot: 3 to reveal, 3 more to dissolve
+function faceHit(onDot){
+  if(face.st==="in"||face.st==="out")return;
+  if(!onDot){face.cnt=0;return}
+  face.cnt=(face.cnt||0)+1;
+  if(face.cnt<3){try{buzz([12])}catch(e){}return}
+  face.cnt=0;
+  if(face.st==="hold"){face.st="out";face.t0=t;try{buzz([30,40,30,40,30,40,90])}catch(e){}}
+  else{face.st="in";face.on=true;face.t0=t;if(!face.th)faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
 }
 function drawFace(){
   if(!face.on)return;
-  const age=t-face.t0,BUILD=460,HOLD=360,GONE=200,TOT=BUILD+HOLD+GONE;
-  if(age>TOT){face.on=false;return}
-  let prog,fade=1;
-  if(age<BUILD)prog=age/BUILD*1.15;
-  else if(age<BUILD+HOLD)prog=2;
-  else{prog=2-(age-BUILD-HOLD)/GONE*2;fade=1}
-  const dim=age<60?age/60:(age>BUILD+HOLD?Math.max(0,1-(age-BUILD-HOLD)/GONE):1);
+  const age=t-face.t0,IN=900,OUT=720;
+  let prog,dim=1,band=.075;
+  if(face.st==="in"){if(age>=IN){face.st="hold";face.t0=t;return}prog=age/IN*1.2;dim=Math.min(1,age/120)}
+  else if(face.st==="out"){if(age>=OUT){face.on=false;face.st="off";return}prog=(1-age/OUT)*1.2;dim=age>OUT*.8?Math.max(0,1-(age-OUT*.8)/(OUT*.2)):1}
+  else{prog=2}
+  const hold=face.st==="hold",moving=!hold;
   ctx.fillStyle="rgba(3,3,5,"+(.96*dim)+")";ctx.fillRect(0,0,W,H);
   const pc=Math.min(W*.92/FC,H*.86/(FRn*1.6)),pch=pc*1.6,x0=(W-FC*pc)/2,y0=(H-FRn*pch)/2,th=THEMES[cur];
   ctx.font="bold "+(pc*1.45)+"px ui-monospace,Menlo,Consolas,monospace";ctx.textBaseline="top";
-  const hold=age>=BUILD&&age<BUILD+HOLD;
+  // scan line: the front of the reveal moves down the face (and back up when it leaves)
+  let scanY=-1;
+  if(moving){const f=Math.max(0,Math.min(1,prog/1.2));scanY=y0+(f*.62/.62)*0+y0*0;
+    const rf=Math.max(0,Math.min(1,(prog-.14)/.58))*(FRn-1);scanY=y0+rf*pch+pch*.5;
+    ctx.save();ctx.globalAlpha=.55*dim;const g=ctx.createLinearGradient(0,scanY-pch*3,0,scanY+pch*.6);
+    g.addColorStop(0,"hsla("+th.h+",100%,60%,0)");g.addColorStop(.85,"hsla("+(th.h+30)+",100%,65%,.28)");g.addColorStop(1,"hsla("+(th.h+60)+",100%,90%,.9)");
+    ctx.fillStyle=g;ctx.fillRect(x0-pc*2,scanY-pch*3,FC*pc+pc*4,pch*3.6);ctx.restore()}
   for(let r=0;r<FRn;r++){
     const row=FRows[r];let jx=0;
+    const near=scanY>=0?Math.abs(y0+r*pch+pch*.5-scanY)/pch:9;
+    if(near<2.5&&Math.random()<.5)jx=(Math.random()-.5)*pc*(6-near*2);   // glitch tear around the scan line
     if(hold&&Math.random()<.012)jx=(Math.random()-.5)*pc*5;
-    if(age>BUILD+HOLD&&Math.random()<.2)jx=(Math.random()-.5)*pc*8;
     for(let c=0;c<FC;c++){
       const ch0=row[c];if(ch0===" ")continue;
       const i=r*FC+c,th0=face.th[i],v=FR.indexOf(ch0)/15,x=x0+c*pc+jx,y=y0+r*pch;
       const front=prog-th0;
-      if(front<0){ // not yet formed: faint flicker near the front
-        if(front>-.12&&Math.random()<.35){ctx.fillStyle="hsla("+th.h+",90%,62%,"+(.15+Math.random()*.25)+")";ctx.fillText(rj(),x,y)}
+      if(front<0){ // not formed yet: faint flicker near the front
+        if(front>-.14&&Math.random()<.3){ctx.fillStyle="hsla("+th.h+",90%,62%,"+(.12+Math.random()*.25)+")";ctx.fillText(rj(),x,y)}
         continue}
-      if(front<.06){ // forming: bright scrambled chars
-        ctx.fillStyle="hsla("+(th.h+40)+",100%,80%,"+(.9*dim)+")";ctx.fillText(rj(),x,y);continue}
-      const shim=hold?(.96+.04*Math.sin(t*.05+c*.4+r*.3)):1,l=Math.round((22+v*64)*shim);
+      if(front<band){ // forming: bright scrambled chars, white-hot at the very edge
+        const hot=front<band*.35;
+        ctx.fillStyle=hot?"hsla("+(th.h+60)+",100%,92%,"+dim+")":"hsla("+(th.h+40)+",100%,76%,"+(.9*dim)+")";ctx.fillText(rj(),x,y);continue}
+      const shim=hold?(.95+.05*Math.sin(t*.04+c*.35+r*.25)):1,l=Math.round((22+v*64)*shim);
       ctx.fillStyle="hsla("+(th.h+(v*30))+","+(th.s?45+v*25:0)+"%,"+l+"%,"+(Math.min(1,.35+v*.9)*dim)+")";
       ctx.fillText(ch0,x,y);
-      if(hold&&Math.random()<.0006){ctx.fillStyle="rgba(255,40,210,.7)";ctx.fillText(ch0,x-3,y);ctx.fillStyle="rgba(0,230,255,.7)";ctx.fillText(ch0,x+3,y)}
+      if((hold&&Math.random()<.0007)||(near<1.5&&Math.random()<.05)){ctx.fillStyle="rgba(255,40,210,.7)";ctx.fillText(ch0,x-3,y);ctx.fillStyle="rgba(0,230,255,.7)";ctx.fillText(ch0,x+3,y)}
     }
   }
 }
 function fire(clientX,clientY,quiet){
   silent=!!quiet;
-  const onDot=!quiet&&!face.on&&dot&&Math.hypot(clientX-dot.x,clientY-dot.y)<=Math.max(34,cell*3);
+  const onDot=!quiet&&dot&&Math.hypot(clientX-dot.x,clientY-dot.y)<=Math.max(34,cell*3);
   const x=Math.max(0,Math.min(cols-1,clientX/cell|0)),y=Math.max(0,Math.min(rows-1,clientY/ch|0));
   // new theme wipes outward from the click
   if(wipe)cur=wipe.to;
