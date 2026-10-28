@@ -269,6 +269,7 @@ function drawFace(){
     fsz=Math.min(W*(wide?.8:.96)/(FC*aw1*1.08),H*(wide?.82:.86)/(FRn*1.25)),pc=aw1*fsz*1.08,pch=fsz*1.25,x0=(W-FC*pc)/2,y0=(H-FRn*pch)/2;
   face.box=[x0,y0,x0+FC*pc,y0+FRn*pch];
   ctx.fillStyle="rgba(3,3,5,"+(.96*dim)+")";ctx.fillRect(-30,-30,W+60,H+60);
+  drawRain(false,dim,true);drawStars(dim);
   ctx.font="bold "+fsz+"px "+FFAM;ctx.textBaseline="top";
   const cx=W/2,cy=H/2,span=Math.max(W,H)*.55,P=face.pt,ease=function(u){return 1-Math.pow(1-u,3)};
   for(let r=0;r<FRn;r++){
@@ -293,7 +294,7 @@ function drawFace(){
         ctx.fillStyle="hsla("+(th.h+40*p.n)+",100%,"+(72+18*p.n)+"%,"+(al*dim)+")";
         ctx.fillText(Math.random()<.5?rj():ch0,x,y);
       }else{
-        const shim=hold?(.95+.05*Math.sin(t*.04+c*.35+r*.25)):1,l=Math.round((22+v*64)*shim);
+        const sw=hold?Math.exp(-Math.pow(c+r*.7-((t*.45)%(FC+FRn*.7+60)-20),2)/30):0,shim=hold?(.95+.05*Math.sin(t*.04+c*.35+r*.25)):1,l=Math.min(96,Math.round((22+v*64)*shim+sw*30));
         ctx.fillStyle="hsla("+(th.h+(v*30))+","+(th.s?45+v*25:0)+"%,"+l+"%,"+(Math.min(1,.35+v*.9)*al*dim)+")";
         ctx.fillText(ch0,x,y);
       }
@@ -330,6 +331,39 @@ function fire(clientX,clientY,quiet){
     parts.push({x:clientX,y:clientY,vx:Math.cos(a)*s,vy:Math.sin(a)*s,g:.03,life:30+Math.random()*30,max:60,ch:rj(),hue:Math.random()})}
 }
 // ---------- main loop ----------
+function drawRain(adv,mul,over){
+  ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
+  for(let c=0;c<cols;c++){
+    const d=rain[c];if(!d.on){if(adv&&Math.random()<.004+rainBoost*.05){d.on=true;d.y=-d.len}continue}
+    if(adv)d.y+=d.v*(1+rainBoost*5);
+    const len=d.len+(rainBoost*14|0);
+    for(let j=0;j<len;j++){
+      const rr=Math.floor(d.y)-j;if(rr<0||rr>=rows)continue;
+      if(!over&&mask[rr*cols+c]>.15)continue;
+      const f=1-j/len,th=themeAt(c,rr);
+      ctx.fillStyle=j==0?`hsl(${th.rh} ${th.s?60:0}% 88% / ${(.55+rainBoost*.4)*mul})`:`hsl(${th.rh} ${th.s?100:0}% 58% / ${(.04+.2*f*f)*(1+rainBoost*1.6)*mul})`;
+      ctx.fillText(JUNK[(c*7+rr*3+(t>>3)*(j+1))%JUNK.length],c*cell-tiltX*cell*2.2+(rr-rows/2)*tiltX*cell*.22,rr*ch-tiltY*ch*.6);
+    }
+    if(adv&&d.y-len>rows){d.y=-Math.random()*20;d.v=.12+Math.random()*.3;d.len=6+Math.random()*16|0;d.on=Math.random()<.7}
+  }
+}
+// faint twinkling stars in the empty background
+let stars=null;
+function drawStars(mul){
+  if(!stars||stars.cols!==cols||stars.rows!==rows){const n=Math.max(20,cols*rows/260|0);stars={cols:cols,rows:rows,a:Array.from({length:n},()=>({c:Math.random()*cols|0,r:Math.random()*rows|0,p:Math.random()*6.28,sp:.012+Math.random()*.03,ch:"+*.:'`"[Math.random()*6|0]}))}}
+  ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
+  for(const q of stars.a){const v=Math.sin(t*q.sp+q.p);if(v<.55)continue;if(mask[q.r*cols+q.c]>.15&&mul===1)continue;
+    const th=themeAt(q.c,q.r);ctx.fillStyle=`hsl(${th.rh} ${th.s?70:0}% 85% / ${(v-.55)*.9*mul})`;ctx.fillText(q.ch,q.c*cell,q.r*ch)}
+}
+// a soft trail of characters behind the finger or cursor
+let trail=[],lastTr=0;
+addEventListener("pointermove",e=>{if(t-lastTr<2)return;lastTr=t;trail.push({x:e.clientX,y:e.clientY,t0:t,ch:JUNK[Math.random()*JUNK.length|0]});if(trail.length>40)trail.shift()});
+function drawTrail(){
+  if(!trail.length)return;ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
+  while(trail.length&&t-trail[0].t0>70)trail.shift();
+  for(const q of trail){const a=1-(t-q.t0)/70,c=Math.floor(q.x/cell),r=Math.floor(q.y/ch),th=themeAt(Math.max(0,Math.min(cols-1,c)),Math.max(0,Math.min(rows-1,r)));
+    ctx.fillStyle=`hsl(${th.rh} ${th.s?80:0}% 80% / ${a*.55})`;ctx.fillText(q.ch,c*cell,r*ch)}
+}
 function frame(){
   t++;
   if(!motionLive){tgtX=px>-900?clamp((px/W-.5)*2,-1,1):0;tgtY=py>-900?clamp((py/H-.5)*2,-1,1):0}
@@ -344,27 +378,15 @@ function frame(){
   if(wipe&&(t-wipe.t0)*2.6>Math.hypot(cols,rows*1.6)){cur=wipe.to;wipe=null}
   waves=waves.filter(w=>t-w.t0<110);reboots=reboots.filter(r=>t-r.t0<130);
   if(rainbow>0)rainbow--;
-  rainBoost*=.985;if(rainBoost<.02)rainBoost=0;
+  rainBoost*=.985;if(rainBoost<.02)rainBoost=0;if(t%620===300&&rainBoost<.1)rainBoost=.16;
   if(glitch>0){glitch--;if(glitch%3==0){for(let k=0;k<5;k++)tear[Math.random()*rows|0]=(Math.random()-.5)*16}}
   else{for(let r=0;r<rows;r++)tear[r]=0;if(--nextGlitch<=0){glitch=14;nextGlitch=420+Math.random()*520}}
   const g=glitch>0;
   const cyc=(t%900)/900,bandX=-.2*cols+cyc*1.4*cols;
   const mx=px/cell,my=py/ch;
   const decode=Math.min(1,t/110);
-  // ---- matrix rain (themed) ----
-  for(let c=0;c<cols;c++){
-    const d=rain[c];if(!d.on){if(Math.random()<.004+rainBoost*.05){d.on=true;d.y=-d.len}continue}
-    d.y+=d.v*(1+rainBoost*5);
-    const len=d.len+(rainBoost*14|0);
-    for(let j=0;j<len;j++){
-      const rr=Math.floor(d.y)-j;if(rr<0||rr>=rows)continue;
-      if(mask[rr*cols+c]>.15)continue;
-      const f=1-j/len,th=themeAt(c,rr);
-      ctx.fillStyle=j==0?`hsl(${th.rh} ${th.s?60:0}% 88% / ${.55+rainBoost*.4})`:`hsl(${th.rh} ${th.s?100:0}% 58% / ${(.04+.2*f*f)*(1+rainBoost*1.6)})`;
-      ctx.fillText(JUNK[(c*7+rr*3+(t>>3)*(j+1))%JUNK.length],c*cell-tiltX*cell*2.2+(rr-rows/2)*tiltX*cell*.22,rr*ch-tiltY*ch*.6);
-    }
-    if(d.y-len>rows){d.y=-Math.random()*20;d.v=.12+Math.random()*.3;d.len=6+Math.random()*16|0;d.on=Math.random()<.7}
-  }
+  drawRain(true,1,false);
+  drawStars(1);
   // soft glow of the word shape underneath, makes it readable
   try{ctx.globalAlpha=.9;ctx.drawImage(back,tiltX*cell*2.2,tiltY*ch*.8,W,H);ctx.globalAlpha=1}catch(e){}
   // ---- letters + background ----
@@ -455,6 +477,7 @@ function frame(){
   }
   // ---- soft scanlines ----
   try{drawFace()}catch(e){}
+  try{drawTrail()}catch(e){}
   ctx.fillStyle="rgba(0,0,0,.18)";
   for(let y=0;y<H;y+=3)ctx.fillRect(0,y,W,1);
   // ---- full-screen flash / invert ----
