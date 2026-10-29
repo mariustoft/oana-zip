@@ -385,7 +385,7 @@ function deerPrep(){
   const DC=Math.max.apply(null,DEER.map(l=>l.length)),DR=DEER.length,P=[];
   for(let r=0;r<DR;r++)for(let c=0;c<DEER[r].length;c++){const ch0=DEER[r][c];if(ch0===" ")continue;
     P.push({r,c,ch:ch0,v:DRAMP.indexOf(ch0)/(DRAMP.length-1),
-      ear:r<6?(c<16?1:c>33?2:0):0,eye:r===10&&(c===18||c===19||c===27||c===28),
+      ear:r<8?(c<=19?1:c>=26?2:0):0,eye:r===10&&(c===18||c===19||c===27||c===28),
       d:Math.min(.999,.62*Math.random()+.38*r/DR),d2:Math.min(.999,.6*Math.random()+.4*(1-r/DR)),
       n:Math.random(),a:Math.random()*6.2832})}
   Object.assign(deer,{pts:P,DR,DC});
@@ -406,7 +406,10 @@ function deerTap(){
   const now=performance.now();deer.taps=deer.taps.filter(s=>now-s<2200);deer.taps.push(now);
   if(deer.taps.length<3||cam.st!=="off"||face.on)return;
   deer.taps=[];if(!deer.pts)deerPrep();
-  cam={st:"on",t0:now,p:0,blink:now+2600+Math.random()*1200,blinkN:0,ear:now+3200+Math.random()*2000,earS:0,earT:-1e9,ending:false};
+  // 2-3 ear twitches during the hold, at random moments, alternating ears; some get a quick second flick
+  const tw=[],hs=now+CAM.TURN;let te=hs+900+Math.random()*700,side=Math.random()<.5?1:2;
+  while(te<hs+CAM.HOLD-900&&tw.length<3){tw.push({t:te,s:side,dbl:Math.random()<.4});side=3-side;te+=1500+Math.random()*1100}
+  cam={st:"on",t0:now,p:0,blink:now+2600+Math.random()*1200,blinkN:0,tw,ending:false};
   flash=0;invert=0;shake=0;bolts=[];waves=[];reboots=[];clearTimeout(hold);hold=null;
   try{unlockAudio();bell(PENTA[4],.1,.1,1.8);bell(PENTA[7],.5,.07,2)}catch(e){}
 }
@@ -449,8 +452,16 @@ function drawCamDeer(){
   const br=Math.sin(age/3900*6.2832),hold=cam.ph==="hold";
   if(hold&&now>cam.blink){cam.blinkT=now;cam.blink=now+(cam.blinkN++%3===2?260:2600+Math.random()*2600)}
   const blink=now-(cam.blinkT||-1e9)<150;
-  if(hold&&now>cam.ear){cam.earT=now;cam.earS=Math.random()<.5?1:2;cam.ear=now+3500+Math.random()*3500}
-  const ek=clamp((now-cam.earT)/320,0,1),ef=ek>0&&ek<1?Math.sin(ek*Math.PI)*(1-ek*.4):0;
+  // ear twitch: one ear flicks out for ~220ms and springs back with a small overshoot; its rows shift sideways by whole
+  // characters (top rows 2, middle 1, base 0) with the tip lagging a little (ripple) and dipping a hair
+  let tws=0,twa=0,twd=false,tilt=0;
+  if(cam.tw)for(const e of cam.tw){const u=now-e.t;if(u<0||u>700)continue;
+    if(u<560){tws=e.s;twa=u;twd=e.dbl}
+    tilt+=(e.s===1?-1:1)*Math.sin(clamp(u/700,0,1)*Math.PI)*.75*(e.dbl?1:.85)}   // tiny head tilt (<1deg) toward the busy ear
+  const flick=u=>{if(u<=0||u>=1)return 0;if(u<.3){const k=u/.3;return 1-(1-k)*(1-k)}const g=(u-.3)/.7;return Math.cos(g*Math.PI*1.5)*(1-g)};
+  const twF=lag=>{const u=twa-lag;return flick(u/220)+(twd?.65*flick((u-270)/200):0)};
+  const tiltR=tilt*Math.PI/180,ct=Math.cos(tiltR),stl=Math.sin(tiltR);
+  const hpx=L.x0+25*L.cw,hpy=L.y0+16*L.lh;
   const back=cam.ph==="back"?(age-T-HO)/B:0;
   const tx=tiltX*cell*.9,ty=tiltY*ch*.3,sweep=hold?((age-T)*.012)%(deer.DC+DR+80)-40:-999;
   dctx.font=L.fs+"px "+DFONT;dctx.textBaseline="top";
@@ -461,7 +472,11 @@ function drawCamDeer(){
     let x=L.x0+q.c*L.cw,y=L.y0+q.r*L.lh,chr=q.ch,a=.45+q.v*.55,l=58+q.v*38,scr=false;
     // breathing: body swells a hair around its centre, feet stay planted
     y-=(DR-q.r)*L.lh*.0045*br;if(q.r>14)x+=(q.c-deer.DC*.5)*L.cw*.006*br;
-    if(q.ear&&q.ear===cam.earS&&ef){x+=(q.ear===1?-1:1)*ef*L.cw*1.2*(1-q.r/6);y-=ef*L.lh*.6*(1-q.r/6)}
+    if(q.ear&&q.ear===tws){const h=clamp((7.6-q.r)/7.6,0,1),f=twF(h*45),sx=Math.round(f*2.3*h)*(q.ear===1?-1:1);
+      x+=sx*L.cw;y+=f*h*L.lh*.35;
+      if(sx&&q.n<.25&&Math.abs(f)>.5){const k=DRAMP.indexOf(chr);chr=DRAMP[clamp(k+(q.n<.12?1:-1),1,DRAMP.length-2)]}}
+    // head tilt about the neck, fading out down the neck so the body stays put
+    if(tilt&&q.r<18){const hw=1-sm(11,18,q.r),c2=1-(1-ct)*hw,s2=stl*hw,ux=x-hpx,uy=y-hpy;x=hpx+ux*c2-uy*s2;y=hpy+ux*s2+uy*c2}
     if(q.eye&&blink){chr=q.c===18||q.c===27?"-":"-";l=40;a=.6}
     if(age<at){const k=(age-(at-520))/520;scr=true;a=.12+.35*k;chr=JUNK[(Math.random()*JUNK.length)|0]}
     else if(hold&&Math.random()<.0008){chr=rj()}
