@@ -94,11 +94,15 @@ function glyphs(si){
   try{const b2=box();octx.font=f(fs);
    const tot=octx.measureText(TXT).width,pre=octx.measureText(TXT.slice(0,4)).width,dw=octx.measureText(".").width;
    const sx=(cols/2+dx)/X-tot/2+pre+dw/2;
-   dot={x:sx*X*cell,y:(b2.y1+1-Math.max(1,b2.h*.06))*ch};
+   dot={x:sx*X*cell,y:(b2.y1+1-Math.max(1,b2.h*.06))*ch};wordBot=(b2.y1+1)*ch;
    // refine: the real dot is the filled cells in the narrow column window around its centre
    const cc=sx*X,hw=Math.max(1.5,dw*X*.3);let sr=0,sc=0,n=0;
    for(let r=0;r<rows;r++)for(let c=Math.max(0,Math.floor(cc-hw));c<=Math.min(cols-1,Math.ceil(cc+hw));c++)if(mask[r*cols+c]>.4){sr+=r;sc+=c;n++}
-   if(n>2)dot={x:(sc/n+.5)*cell,y:(sr/n+.5)*ch}}catch(e){dot={x:cols/2*cell,y:rows/2*ch}}
+   if(n>2)dot={x:(sc/n+.5)*cell,y:(sr/n+.5)*ch};
+   // first "o": its column span from the text metrics, its rows from the mask (used by the hidden deer)
+   const ox=((cols/2+dx)/X-tot/2)*X,ow=octx.measureText("o").width*X;let r0=-1,r1=-1;
+   for(let r=0;r<rows;r++)for(let c=Math.max(0,Math.floor(ox));c<=Math.min(cols-1,Math.ceil(ox+ow));c++)if(mask[r*cols+c]>.15){if(r0<0)r0=r;r1=r}
+   oBox=r0<0?null:{x0:ox*cell,x1:(ox+ow)*cell,y0:r0*ch,y1:(r1+1)*ch}}catch(e){dot={x:cols/2*cell,y:rows/2*ch}}
   edge=new Uint8Array(cols*rows);
   for(let r=1;r<rows-1;r++)for(let c=1;c<cols-1;c++){const i=r*cols+c;if(mask[i]>.15&&(mask[i-1]<.15||mask[i+1]<.15||mask[i-cols]<.15||mask[i+cols]<.15))edge[i]=1}
 }
@@ -301,6 +305,240 @@ function drawFace(){
     }
   }
 }
+// ---------- hidden deer: three quick taps on the first "o" and a deer made of characters wanders in, grazes, looks around, wanders off ----------
+const DEER=[
+"   e@%oxi*=:.                                  .x@#",
+"   :+ixxxo#%o*~                           ..'-ie@@-",
+"    ``,+oxxe%@%-.                `:~;',~*xoe%@@@@:",
+"    .``;ioxxo%@=``..          `;==-;`:x@@%%%@%x=.",
+"     .``~*ixxe%o-`~=~:'`'',-+*=;::::-e@%####x~",
+"       `,~=**x#@#~,~:,'``',;+i~:=*xe@@#e#%%*`",
+"        ,*oeeoixx=``,::,,,:,`,~*%@@@%##e%#-",
+"          ';+e@o+io-..',,''';=+o@@@@@@@@e-",
+"              ;+iexii;''`.,+%@oi;..````.",
+"               `io*io~,:,:*eo@o'",
+"               :+i%@i.;i*:-%@x`",
+"               ;=;-i+=#@%i+xi;",
+"               .=~';+xi=+ox+-`",
+"                -=-=~` ...,+=",
+"               '-==-;=~:~=;~,",
+"               ,+o%%%@%#%@e+`.`'''''''''`.",
+"               :+e@@@%%%%%#=.`'''''''''',,,'.",
+"              `~=*xxoeeoox+;.```'''''''',,,::,'",
+"             `;=+*oooeeoo*-;```'''''',,,::::::~;`",
+"            ':~*++eeoeeoo*-,``'''''',,,::;;;;~;~~;.",
+"          .`:~=++*e#eeeeo*=;``'''',,,,:::;~~~--~~--`",
+"          `:-=-+iioeeeeeo*=;'''',,,,,:::;;~-===~~~--.",
+"         ':~=-=*oeeeoooeo*-,',,,,,,,::::;~~-+++-~~~-:",
+"        `:;-==+xoeeeooe#o*-;:,,,,,,,,::::;;~=+*=-~~~-",
+"       .,:~-==+xxxxoeeexi=~==~,'',,,,,,,::::~=+=-;~--",
+"       ',:~-=-=*i*ixxxi*+-~=+~:'',,::,,,::::;~==-~~--",
+"       ,,:~====+++*i***i+-+i=;,'',:;~;:::::::;-=-;;-:",
+"      .,:;~+xi++=-=++=**==**-;;,,',~~;:,,::::;~=-;;-`",
+"      .::;~-+*+=-;;~==+*i*+=-~;,,',;~;,,,::,:;;~~~;-.",
+"       ';-+*+*+=;'':-+**i*=--~:,,,:;~:,,,,,,;;;;~;~-.",
+"       ';+xxx*=~:,,,~=**iii+-;:,,:;;:,,,,,,,~--~~;~-.",
+"       ';=***+-;:',,:-*xxxi*=;,,',::,,,,,'`,~-==~~~~`",
+"       '~++;`';;:',,;-=++****-,''',,,,,'`.'=*==--~;-;",
+"       `+=~:''''''',:;;,':~-+=;''''''''`'-o@ei*=-;:;~",
+"        ;i+~''`'```''''''':~**=,'''``..~o*-e%o*+=-~;~'",
+"         ~x+,``''```''`.',,-xo+,''`.`-io#: ,#ei++-;;~;",
+"         .=+=++'.````':::,,;=+;`. .~o#exe;  ~%oxx*=;;;.",
+"          '+io%=..``.;*eeo='-+:`~io%#exxe~   =#%%#x=:~`",
+"          .=*xe#i`.``..;#%+;=-''o@%###oioi    *@%%%x-:",
+"           +e##@o  .... -#x=*-`.=%%%%%oixo;   .x@%%#*'",
+"           +%%%@=       +eo*+~'  =@@##o*o#x`   .e@%#i~",
+"           +%%#e'       i#ox*~`   -%@#exo%%x`   .#@#*+,",
+"           i@%%*        ~##e*:.    :#@%ox#%@e;   '#%i+~",
+"          .x@%#;        `o@#*,      `e@eoo##%%;   -@#*+-",
+"          ~o#@e`        `o@#=.       `e@#oo#%@*   +#@exi`",
+"          +e#@x         .x@#+         ,%@e**oo`    =@@xx*",
+"         .*xe@i          +%oi.         i@#i+i=      i@oxe~",
+"         `io#%-          i#oi.         ;##oi*.      `##xxi.",
+"         'x%@i          -%eox;         ~o#oi-        :##oo-",
+"         .x@e.          -#oii=         -e#x*:         -%#o+",
+"         ~e@*           `ee*+-         :#%x*'          x%xi'",
+"         +%@'            =%i+;         ;##o*.          -#eo;",
+"         i@x             .eo=.         *%ex-           .x#e*",
+"        ;#@~              x%*.         *#ox;            =eei`",
+"        i%%;              ~%o.        .x#oi'            ,eex;",
+"       ~#%#,              'eo'        :o#ox,            .xex;",
+"      'xe##,              'o#=        -o#oi'             -ox=",
+"      -e#e#:              ,o#+       `ixee*              ~ex*,",
+"     .i#e#o.              'ee*       ,oxo#*              =%oeo.",
+"     +ooeo;               ;##e;      -eoe%*              ;oie%*",
+"    -eoe#~                ;#e#*     'xe#%%*               x*=eo.",
+"   :xxx#o`                ;#ee#:   .ioo#e=.               +i=o%,",
+"   +oi-~'                 :#ex#~  ,x###x~                 ,i**i-",
+"     .                    ,eo*#*  .`...                    `."
+];
+const DRAMP=" .`',:;~-=+*ixoe#%@",DLH=1.12,DFONT="ui-monospace,Menlo,Consolas,monospace",DUST=".,'`*";
+let deer={st:"off",pts:null,dust:[],taps:[]},dz=null,oTap=false,oBox=null,wordBot=0;
+// split the art into characters once: brightness, which leg (0-3, tracked up from the hooves), head/neck weight, ears, reveal delay
+function deerPrep(){
+  const DC=Math.max.apply(null,DEER.map(l=>l.length)),DR=DEER.length,A=DEER.map(l=>l.padEnd(DC));
+  const runs=r=>{const o=[];for(let c=0;c<DC;c++){if(DRAMP.indexOf(A[r][c])<5)continue;const q=o[o.length-1];if(q&&c-q[1]<=2)q[1]=c;else o.push([c,c])}return o};
+  const leg=A.map(()=>new Int8Array(DC).fill(-1));
+  let r0=DR-1;while(r0>0&&runs(r0).length!==4)r0--;
+  let cen=runs(r0).map(q=>(q[0]+q[1])/2),top=r0;
+  for(let r=DR-1;r>=0;r--){const R=runs(r);
+    if(r<r0&&R.length!==4){top=r+1;break}
+    if(R.length===4)cen=R.map(q=>(q[0]+q[1])/2);
+    for(let c=0;c<DC;c++){if(A[r][c]===" ")continue;let k=0;for(let j=1;j<4;j++)if(Math.abs(cen[j]-c)<Math.abs(cen[k]-c))k=j;leg[r][c]=k}}
+  const P=[],hoof=[-1,-1,-1,-1],earR=Math.round(DR*.14),HN=Math.round(DR*.17),HE=Math.round(DR*.25);
+  let tail=null;
+  for(let r=0;r<DR;r++)for(let c=0;c<DC;c++){const ch0=A[r][c];if(ch0===" ")continue;
+    const k=r>=top?leg[r][c]:-1,i=P.length;
+    if(k>=0&&(hoof[k]<0||P[hoof[k]].r<r))hoof[k]=i;
+    if(r>HE&&r<HE+6&&(!tail||c>tail.c))tail={r,c};          // rump edge, where the tail flicks out
+    P.push({r,c,ch:ch0,v:DRAMP.indexOf(ch0)/(DRAMP.length-1),leg:k,lf:k>=0?Math.pow((r-top+1)/(DR-top),1.3):0,
+      hw:r<=HN?1:r<HE?1-(r-HN)/(HE-HN):0,ear:r<earR?(c<DC*.35?1:c>DC*.55?2:0):0,d:.6*Math.random()+.4*(1-c/DC),x:0,y:0,hid:false})}
+  // grass tufts on the ground around where it stops; denser in front of the muzzle so it has something to graze
+  const G=[];
+  for(let k=0;k<30;k++){const near=k<12,c=near?DC*.28+Math.random()*DC*.3:-DC*.9+Math.random()*DC*2.8;
+    G.push({c,h:near?2+(Math.random()*2|0):1+(Math.random()*3|0),n:1+(Math.random()*3|0),p:Math.random()*6.28,front:Math.random()<.5})}
+  Object.assign(deer,{pts:P,hoof,DR,DC,earR,HN,HE,tail,grass:G,occ:new Uint8Array(DR*DC)});
+}
+// first "o": hit test in screen space, undoing the tilt shear the letters are drawn with
+function onFirstO(x,y){
+  if(!oBox)return false;
+  const r=(y-tiltY*ch*.8)/ch,x2=x-tiltX*cell*2.2-(r-rows/2)*tiltX*cell*.2,y2=y-tiltY*ch*.8,pad=Math.max(10,cell*1.5);
+  return x2>=oBox.x0-pad&&x2<=oBox.x1+pad&&y2>=oBox.y0-pad&&y2<=oBox.y1+pad;
+}
+function rnd(a,b){return a+Math.random()*(b-a)}
+// a loose, random little routine: graze a couple of times, look around, flick ears, shuffle a step, then wander off
+function deerPlan(){
+  const q=[["idle",rnd(40,90)],["look",rnd(110,170)]],extra=[["ears",50],["step",80],["tail",45],["look",rnd(90,150)],["idle",rnd(30,80)]];
+  for(let k=0;k<2+(Math.random()*2|0);k++){
+    q.push(["graze",rnd(220,420)],["chew",rnd(100,170)]);
+    extra.sort(()=>Math.random()-.5);q.push(extra[0],extra[1]);
+  }
+  q.push(["look",rnd(100,140)],["idle",rnd(30,60)]);
+  return q;
+}
+function deerTap(){
+  const now=performance.now();deer.taps=deer.taps.filter(s=>now-s<2200);deer.taps.push(now);
+  if(deer.taps.length<3||deer.st!=="off"||face.on)return;
+  deer.taps=[];if(!deer.pts)deerPrep();
+  Object.assign(deer,{st:"in",t0:t,ph:0,amp:0,dust:[],lift:[0,0,0,0],x:null,xo:0,xoT:0,
+    hx:0,hy:0,tl:0,hxT:0,hyT:0,tlT:0,el:0,ev:0,er:0,erv:0,tf:0,grow:0,q:deerPlan(),act:null});
+  try{bell(PENTA[4],0,.12,1.6);bell(PENTA[7],.18,.08,1.8);buzz([12,40,12])}catch(e){}
+}
+function earKick(side,s){if(side!==2)deer.ev+=s*(Math.random()<.5?-1:1);if(side!==1)deer.erv+=s*(Math.random()<.5?-1:1)}
+// sets pose targets for the current behaviour
+function deerAct(){
+  let a=deer.act;
+  if(!a||t-a.t0>=a.dur){const n=deer.q.shift();if(!n){deer.st="out";deer.t0=t;deer.hxT=deer.hyT=deer.tlT=0;return}
+    a=deer.act={k:n[0],dur:n[1],t0:t,dir:Math.random()<.5?-1:1,n:0}}
+  const u=(t-a.t0)/a.dur,G=deer.DR-3-deer.HN*.7;
+  if(a.k==="idle"){deer.hxT=0;deer.hyT=0;deer.tlT=0}
+  else if(a.k==="look"){const s=u<.45?a.dir:u<.8?-a.dir*.7:0;deer.hxT=s*4;deer.tlT=s*.2;deer.hyT=u<.8?-1.2:0;if(Math.random()<.03)earKick(0,.5)}
+  else if(a.k==="graze"){deer.hxT=Math.sin(a.t0)*1.5;deer.tlT=0;
+    deer.hyT=u<.9?G-(Math.sin((t-a.t0)*.11)>.6?1.6:0):0;                          // nibbling: tiny lifts while down
+    if(!a.gl&&u>.3&&u<.7&&Math.random()<.01)a.gl=t+rnd(50,90);                       // a quick wary glance up
+    if(a.gl>t){deer.hyT=G*.45;deer.hxT=a.dir*2}}
+  else if(a.k==="chew"){deer.hyT=Math.sin((t-a.t0)*.35)*.45;deer.hxT=u>.5?a.dir*1.6:0;deer.tlT=u>.5?a.dir*.06:0;if(Math.random()<.015)earKick(0,.6)}
+  else if(a.k==="ears"){if((t-a.t0)%17===0)earKick(a.n++%2?1:2,.9)}
+  else if(a.k==="step"){if(t===a.t0+1)deer.xoT=Math.max(-.12,Math.min(.12,deer.xoT+a.dir*rnd(.04,.07)))}
+  else if(a.k==="tail"){deer.tf=Math.max(0,Math.sin(u*Math.PI*3))}
+}
+const D_IN=420,D_OUT=420;
+// advances the scene and works out where every character goes this frame; marks the grid cells it covers (dz=1) and a soft halo (dz=2)
+function deerStep(){
+  if(deer.st==="off"){dz=null;return}
+  const age=t-deer.t0,DR=deer.DR,DC=deer.DC,P=deer.pts;
+  ctx.font="100px "+DFONT;deer.aw=ctx.measureText("@").width/100;
+  const wide=W>H,dh=Math.max(H*.38,Math.min(H*.5,H*.975-wordBot+H*.04)),fs=Math.min(dh/(DR*DLH),W*(wide?.6:.82)/(DC*deer.aw));
+  const w=DC*deer.aw*fs,h=DR*DLH*fs,xs=-w*1.05,xm=(W-w)/2,xe=W+w*.05;
+  let x;
+  if(deer.st==="in"){const u=Math.min(1,age/D_IN),e=1-Math.pow(1-u,1.8);x=xs+(xm-xs)*e;deer.grow=Math.min(1,u*1.3);deer.hyT=Math.sin(deer.ph*2)*.4;if(u>=1){deer.st="scene";deer.t0=t}}
+  else if(deer.st==="scene"){deerAct();deer.xo+=(deer.xoT-deer.xo)*.035;x=xm+deer.xo*w}
+  if(deer.st==="out"){const u=Math.min(1,(t-deer.t0)/D_OUT),e=Math.pow(u,1.7);x=xm+deer.xo*w+(xe-xm)*e;deer.grow=Math.max(0,1-u*1.6);
+    if(u>=1){deer.st="off";dz=null;return}}
+  const sp=deer.x===null?0:Math.abs(x-deer.x);
+  deer.ph+=sp/(w*.3)*Math.PI;                         // leg phase follows distance actually walked
+  deer.amp+=(Math.min(1,sp/(w*.006))-deer.amp)*.12;   // legs settle as it slows down
+  // pose springs: head drifts to its targets, ears flick and swing back, sometimes on their own
+  deer.hx+=(deer.hxT-deer.hx)*.05;deer.hy+=(deer.hyT-deer.hy)*(deer.hyT>deer.hy?.035:.06);deer.tl+=(deer.tlT-deer.tl)*.05;
+  if(Math.random()<.006)earKick(Math.random()<.5?1:2,.7);
+  deer.ev+=-deer.el*.09-deer.ev*.12;deer.el+=deer.ev;deer.erv+=-deer.er*.09-deer.erv*.12;deer.er+=deer.erv;
+  if(deer.act&&deer.act.k!=="tail")deer.tf*=.9;
+  deer.fs=fs;deer.w=w;deer.h=h;deer.x=x;deer.y=H*.975-h;
+  if(!dz||dz.length!==cols*rows)dz=new Uint8Array(cols*rows);else dz.fill(0);
+  const cw=deer.aw*fs,lh=DLH*fs,bob=(1-Math.cos(deer.ph*2))*.5*deer.amp*fs*.45,down=Math.max(0,Math.min(1,deer.hy/(DR*.5))),sq=1-.3*down;
+  // head first, so it can hide what is behind it when lowered
+  const occ=deer.occ;occ.fill(0);
+  for(const p of P){
+    let cx=p.c,cy=p.r;
+    if(p.hw>0){const k=p.hw;cy=p.r*(1-(1-sq)*k)+deer.hy*k;cx=p.c+deer.hx*k+deer.tl*(deer.HN-p.r)*k;
+      if(p.ear){const e=(p.ear===1?deer.el:deer.er)*(1-p.r/deer.earR);cx+=(p.ear===1?-e:e);cy-=Math.abs(e)*.25}
+      if(k>.6&&down>.1){const oc=Math.round(cx),orr=Math.round(cy);for(let b=-1;b<=1;b++)if(orr>=0&&orr<DR&&oc+b>=0&&oc+b<DC)occ[orr*DC+oc+b]=1}}
+    p.cx=cx;p.cy=cy}
+  for(const p of P){
+    let px_=x+p.cx*cw,py_=deer.y+p.cy*lh-bob*(1-p.lf);
+    p.hid=p.hw<.4&&down>.1&&occ[p.r*DC+p.c]===1;
+    if(p.leg>=0&&deer.amp>.01){const ph=deer.ph+(p.leg%2?0:Math.PI);
+      py_-=Math.max(0,Math.sin(ph))*p.lf*lh*1.6*deer.amp;px_+=Math.cos(ph)*p.lf*cw*2*deer.amp}
+    p.x=px_;p.y=py_;
+    if(p.hid)continue;
+    const gc=Math.floor((px_+cw*.5)/cell),gr=Math.floor((py_+lh*.5)/ch);
+    if(gc>=0&&gc<cols&&gr>=0&&gr<rows)dz[gr*cols+gc]=1;
+  }
+  // soft halo around the silhouette so the rain brightens near it
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){if(dz[r*cols+c]!==1)continue;
+    for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++){const rr=r+a,cc=c+b;if(rr>=0&&rr<rows&&cc>=0&&cc<cols&&!dz[rr*cols+cc])dz[rr*cols+cc]=2}}
+  // hoof dust when a lifted foot comes down
+  for(let k=0;k<4;k++){const s=Math.sin(deer.ph+(k%2?0:Math.PI)),hp=P[deer.hoof[k]];
+    if(deer.lift[k]>0&&s<=0&&deer.amp>.25&&hp)for(let j=0;j<3+(Math.random()*3|0);j++)
+      deer.dust.push({x:hp.x+(Math.random()-.5)*cw*3,y:hp.y+lh*.6,vx:-(.15+Math.random()*.6),vy:-(.05+Math.random()*.35),life:40+Math.random()*30,max:70,ch:DUST[Math.random()*DUST.length|0]});
+    deer.lift[k]=s}
+  if(deer.st==="scene"&&Math.random()<.02){const p=P[Math.random()*P.length|0];deer.dust.push({x:p.x,y:p.y,vx:(Math.random()-.5)*.3,vy:-.2-Math.random()*.3,life:60,max:60,ch:Math.random()<.5?"*":"."})}
+}
+// grass tufts swaying on the ground line; they grow in as it arrives and wither away after it leaves
+function drawGrass(front){
+  const g=deer.grow;if(!g||!deer.grass)return;
+  const xm=(W-deer.w)/2,cw=deer.aw*deer.fs,lh=DLH*deer.fs,gy=deer.y+deer.h-lh*1.2,th=THEMES[cur];
+  const down=Math.max(0,Math.min(1,deer.hy/(deer.DR*.5))),mx=xm+(deer.DC*.45+deer.hx)*cw;
+  ctx.font="bold "+deer.fs*1.7+"px "+DFONT;ctx.textBaseline="top";
+  for(const q of deer.grass){if(q.front!==front)continue;
+    const bx=xm+q.c*cw,hh=Math.ceil(q.h*g),gw=cw*1.7,gl=lh*1.35;
+    for(let j=0;j<q.n;j++){const x0=bx+j*gw*.8;
+      const nib=down>.7&&Math.abs(x0-mx)<cw*5?Math.sin(t*.4+j)*1.2:0;      // tugged while it grazes
+      for(let r=0;r<hh;r++){
+        const s=Math.sin(t*.025+q.p+j*.7)*.8+Math.sin(t*.011+bx*.01)*.4+nib,top=r===hh-1;
+        const chr=r===0?(j%2?",":"."):top?(s>.45?"/":s<-.45?"\\":(j%2?"|":"'")):(s>.6?"/":s<-.6?"\\":"|");
+        const a=(.4+.45*(r+1)/q.h)*Math.min(1,g*1.5);
+        ctx.fillStyle=`hsl(${th.s?105:0} ${th.s?32:0}% ${58+r*9}% / ${a})`;
+        ctx.fillText(chr,x0+s*gw*.3*(r/q.h),gy-r*gl*.8)}}}
+}
+function drawDeer(){
+  if(deer.dust&&deer.dust.length){ctx.font=Math.max(7,deer.fs*1.1)+"px "+DFONT;ctx.textBaseline="top";
+    for(let k=deer.dust.length-1;k>=0;k--){const q=deer.dust[k];q.life--;if(q.life<=0){deer.dust.splice(k,1);continue}
+      q.x+=q.vx;q.y+=q.vy;q.vy+=.004;const a=q.life/q.max;ctx.fillStyle=`hsl(${THEMES[cur].rh} ${THEMES[cur].s?20:0}% 82% / ${a*.6})`;ctx.fillText(q.ch,q.x,q.y)}}
+  if(deer.st==="off")return;
+  drawGrass(false);
+  const age=t-deer.t0,P=deer.pts,th=THEMES[cur],sat=th.s?9:0,hue=th.rh,fs=deer.fs,cw=deer.aw*fs,lh=DLH*fs;
+  ctx.font=fs+"px "+DFONT;ctx.textBaseline="top";
+  const tx=tiltX*cell*1.2,ty=tiltY*ch*.4,calm=deer.st==="scene",breath=calm?Math.sin(t*.05)*fs*.12:0;
+  const sweep=calm?(age*.35)%(deer.DC+deer.DR+60)-30:-999;
+  for(const p of P){
+    if(p.hid)continue;
+    let x=p.x+tx,y=p.y+ty+(p.hw<1?breath*(p.r/deer.DR):0),chr=p.ch,a=.28+p.v*.72,l=48+p.v*48;
+    const gr=Math.floor((p.y+lh*.5)/ch);if(gr>=0&&gr<rows)x+=tear[gr]*.6;
+    if(deer.st==="in"){const due=10+p.d*110;                     // materialise: scramble, then settle
+      if(age<due-40)continue;
+      if(age<due){a=.18+.25*(1-(due-age)/40);
+        ctx.fillStyle=`hsl(${th.h} ${th.s?60:0}% 78% / ${a})`;ctx.fillText(rj(),x,y);continue}}
+    else if(Math.random()<.002)chr=rj();
+    if(calm){const sw=Math.exp(-Math.pow(p.c+p.r*.6-sweep,2)/40);l=Math.min(97,l+sw*20);a=Math.min(1,a+sw*.25)}
+    ctx.fillStyle=`hsl(${hue} ${sat}% ${l}% / ${a})`;ctx.fillText(chr,x,y);
+  }
+  // tail flick at the rump edge
+  if(deer.tf>.05&&deer.tail){const q=deer.tail,x=deer.x+(q.c+1)*cw+tx,y=deer.y+q.r*lh+ty-deer.tf*lh*1.2;
+    ctx.fillStyle=`hsl(${hue} ${sat}% 80% / ${.4+deer.tf*.5})`;ctx.fillText(deer.tf>.5?"'":"~",x,y);ctx.fillText(",",x-cw*.4,y+lh*.7)}
+  drawGrass(true);
+}
+
 function fire(clientX,clientY,quiet){
   silent=!!quiet;
   const onDot=!quiet&&dot&&Math.hypot(clientX-dot.x,clientY-dot.y)<=Math.max(46,cell*4);
@@ -314,7 +552,7 @@ function fire(clientX,clientY,quiet){
   last=bag.pop();FX[last](x,y);
   try{if(!quiet){unlockAudio();if(SFX[last])SFX[last]();SFX.tick();buzz(BUZZ[last])}}catch(e){}
   silent=false;
-  if(!quiet&&!onDot&&!face.on&&!face.cnt){fontIn--;if(fontIn<=0){fontIn=3+(Math.random()*3|0);try{let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;glyphs(sty);drips=[]}catch(e){}}}
+  if(!quiet&&!onDot&&!oTap&&!face.on&&!face.cnt){fontIn--;if(fontIn<=0){fontIn=3+(Math.random()*3|0);try{let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;glyphs(sty);drips=[]}catch(e){}}}
   // click counter: milestones and combos
   if(!quiet){
     clicks++;combo=(t-lastClick<32)?combo+1:1;lastClick=t;try{faceHit(onDot,clientX,clientY)}catch(e){}
@@ -340,8 +578,9 @@ function drawRain(adv,mul,over){
     for(let j=0;j<len;j++){
       const rr=Math.floor(d.y)-j;if(rr<0||rr>=rows)continue;
       if(!over&&mask[rr*cols+c]>.15)continue;
-      const f=1-j/len,th=themeAt(c,rr);
-      ctx.fillStyle=j==0?`hsl(${th.rh} ${th.s?60:0}% 88% / ${(.55+rainBoost*.4)*mul})`:`hsl(${th.rh} ${th.s?100:0}% 58% / ${(.04+.2*f*f)*(1+rainBoost*1.6)*mul})`;
+      const z=dz&&!over?dz[rr*cols+c]:0;if(z===1)continue;
+      const f=1-j/len,th=themeAt(c,rr),hb=z===2?2.2:1;
+      ctx.fillStyle=j==0?`hsl(${th.rh} ${th.s?60:0}% 88% / ${(.55+rainBoost*.4)*mul})`:`hsl(${th.rh} ${th.s?100:0}% ${z===2?70:58}% / ${(.04+.2*f*f)*(1+rainBoost*1.6)*mul*hb})`;
       ctx.fillText(JUNK[(c*7+rr*3+(t>>3)*(j+1))%JUNK.length],c*cell-tiltX*cell*2.2+(rr-rows/2)*tiltX*cell*.22,rr*ch-tiltY*ch*.6);
     }
     if(adv&&d.y-len>rows){d.y=-Math.random()*20;d.v=.12+Math.random()*.3;d.len=6+Math.random()*16|0;d.on=Math.random()<.7}
@@ -352,7 +591,7 @@ let stars=null;
 function drawStars(mul){
   if(!stars||stars.cols!==cols||stars.rows!==rows){const n=Math.max(20,cols*rows/260|0);stars={cols:cols,rows:rows,a:Array.from({length:n},()=>({c:Math.random()*cols|0,r:Math.random()*rows|0,p:Math.random()*6.28,sp:.012+Math.random()*.03,ch:"+*.:'`"[Math.random()*6|0]}))}}
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
-  for(const q of stars.a){const v=Math.sin(t*q.sp+q.p);if(v<.55)continue;if(mask[q.r*cols+q.c]>.15&&mul===1)continue;
+  for(const q of stars.a){const v=Math.sin(t*q.sp+q.p);if(v<.55)continue;if(mask[q.r*cols+q.c]>.15&&mul===1)continue;if(dz&&dz[q.r*cols+q.c]===1)continue;
     const th=themeAt(q.c,q.r);ctx.fillStyle=`hsl(${th.rh} ${th.s?70:0}% 85% / ${(v-.55)*.9*mul})`;ctx.fillText(q.ch,q.c*cell,q.r*ch)}
 }
 // a soft trail of characters behind the finger or cursor
@@ -385,6 +624,7 @@ function frame(){
   const cyc=(t%900)/900,bandX=-.2*cols+cyc*1.4*cols;
   const mx=px/cell,my=py/ch;
   const decode=Math.min(1,t/110);
+  try{deerStep()}catch(e){dz=null}
   drawRain(true,1,false);
   drawStars(1);
   // soft glow of the word shape underneath, makes it readable
@@ -393,6 +633,7 @@ function frame(){
   for(let r=0;r<rows;r++){
     for(let c=0;c<cols;c++){
       const i=r*cols+c,m=mask[i];
+      if(dz&&dz[i]===1)continue;
       // wave rings (apply to all cells)
       let ring=0;
       for(let k=0;k<waves.length;k++){const w=waves[k],age=t-w.t0;if(age<0)continue;
@@ -439,7 +680,7 @@ function frame(){
         ctx.globalCompositeOperation="source-over";
       }
       ctx.fillStyle=`hsl(${hue2} ${sat2}% ${light}%)`;
-      ctx.fillText(chr,x,y);
+      if(dz&&dz[i]===2){ctx.globalAlpha=.35;ctx.fillText(chr,x,y);ctx.globalAlpha=1}else ctx.fillText(chr,x,y);
       if(Math.random()<.00012&&(r+1>=rows||mask[i+cols]<.15))drips.push({c,r:r+1,len:4+Math.random()*10|0,hue,age:0});
     }
   }
@@ -476,6 +717,7 @@ function frame(){
     ctx.fillText(p.ch,p.x,p.y);
   }
   // ---- soft scanlines ----
+  try{drawDeer()}catch(e){}
   try{drawFace()}catch(e){}
   try{drawTrail()}catch(e){}
   ctx.fillStyle="rgba(0,0,0,.18)";
@@ -496,7 +738,8 @@ function finale(x,y){
     FX.shockwave(x/cell|0,y/ch|0);FX.explode(x/cell|0,y/ch|0);FX.lightning(x/cell|0,y/ch|0);
     SFX.explode();SFX.colors();noise(1.2,.35,150,1000,0,"lowpass",.7);buzz([40,30,80,30,140,30,220])}catch(e){}
 }
-addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;lastInput=t;fire(e.clientX,e.clientY);
+addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;lastInput=t;oTap=onFirstO(e.clientX,e.clientY);fire(e.clientX,e.clientY);
+  if(oTap){oTap=false;try{deerTap()}catch(err){}}
   hx=px;hy=py;clearTimeout(hold);hold=setTimeout(()=>{finale(hx,hy);hold=null},700)});
 addEventListener("pointerup",()=>{clearTimeout(hold);hold=null});
 addEventListener("pointercancel",()=>{clearTimeout(hold);hold=null});
