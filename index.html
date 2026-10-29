@@ -21,17 +21,22 @@
 
 <style>
 html,body{margin:0;width:100%;height:100%;height:100dvh;background:#060608;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-canvas{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;display:block;cursor:crosshair}
+#scene{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;perspective:1000px;perspective-origin:50% 50%}
+canvas{position:absolute;left:0;top:0;width:100vw;height:100vh;height:100dvh;display:block;cursor:crosshair;backface-visibility:hidden}
+#r,#d{visibility:hidden;pointer-events:none}
+.scan{pointer-events:none;position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.18) 1px,transparent 1px,transparent 3px)}
 h1{position:absolute;left:-9999px}
 .vig{pointer-events:none;position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8))}
 </style>
 </head>
 <body>
 <h1>oana.zip</h1>
-<canvas id="c" aria-label="oana.zip"></canvas>
+<div id="scene"><canvas id="r"></canvas><canvas id="c" aria-label="oana.zip"></canvas><canvas id="d"></canvas></div>
 <div class="vig"></div>
+<div class="scan"></div>
 <script>
-const cv=document.getElementById("c"),ctx=cv.getContext("2d");
+const cv=document.getElementById("c"),mctx=cv.getContext("2d"),rc=document.getElementById("r"),rctx=rc.getContext("2d"),dcv=document.getElementById("d"),dctx=dcv.getContext("2d"),scene=document.getElementById("scene");
+let ctx=mctx; // swapped to the rain / deer layer while the camera scene runs
 const back=document.createElement("canvas"),off=document.createElement("canvas"),octx=off.getContext("2d",{willReadFrequently:true});
 const RAMP=" .:-=+*abxz#%@";
 const JUNK="01<>/\\|+*#%&=-_:;.~^";
@@ -110,7 +115,8 @@ function build(){
   dpr=Math.min(devicePixelRatio||1,2);
   const vv=window.visualViewport;W=Math.round(vv?vv.width:innerWidth);H=Math.round(Math.max(vv?vv.height:0,innerHeight));
   cv.style.width=W+'px';cv.style.height=H+'px';
-  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  for(const el of [cv,rc,dcv]){el.style.width=W+'px';el.style.height=H+'px';el.width=W*dpr;el.height=H*dpr}ctx.setTransform(dpr,0,0,dpr,0,0);
+  const P3=Math.round(Math.max(900,W*.85));camD=P3;camA=clamp(Math.asin(Math.min(1,W*.75/P3))*57.3,18,40);scene.style.perspective=P3+'px';for(const el of [cv,dcv])el.style.transformOrigin='50% 50% '+P3+'px'; // the word and the deer turn around the viewer's eye
   cell=Math.max(3,Math.min(Math.round(Math.min(W,H)/112),W/150));ch=cell*1.6;
   cols=Math.ceil(W/cell);rows=Math.ceil(H/ch);
   glyphs(sty);
@@ -305,7 +311,7 @@ function drawFace(){
     }
   }
 }
-// ---------- hidden deer: three quick taps on the first "o" and a deer made of characters wanders in, grazes, looks around, wanders off ----------
+// ---------- hidden deer: three quick taps on the first "o", the camera turns its head and a deer made of characters is standing there, looking at you ----------
 const DEER=[
 "   e@%oxi*=:.                                  .x@#",
 "   :+ixxxo#%o*~                           ..'-ie@@-",
@@ -372,32 +378,17 @@ const DEER=[
 "   +oi-~'                 :#ex#~  ,x###x~                 ,i**i-",
 "     .                    ,eo*#*  .`...                    `."
 ];
-const DRAMP=" .`',:;~-=+*ixoe#%@",DLH=1.12,DFONT="ui-monospace,Menlo,Consolas,monospace",DUST=".,'`*";
-let deer={st:"off",pts:null,dust:[],taps:[]},dz=null,oTap=false,oBox=null,wordBot=0;
-// split the art into characters once: brightness, which leg (0-3, tracked up from the hooves), head/neck weight, ears, reveal delay
+const DRAMP=" .`',:;~-=+*ixoe#%@",DLH=1.12,DFONT="ui-monospace,Menlo,Consolas,monospace";
+let deer={pts:null,taps:[]},dz=null,oBox=null,wordBot=0;
+// split the art into characters once: brightness, ears, eyes, and random timings for assembling / dissolving
 function deerPrep(){
-  const DC=Math.max.apply(null,DEER.map(l=>l.length)),DR=DEER.length,A=DEER.map(l=>l.padEnd(DC));
-  const runs=r=>{const o=[];for(let c=0;c<DC;c++){if(DRAMP.indexOf(A[r][c])<5)continue;const q=o[o.length-1];if(q&&c-q[1]<=2)q[1]=c;else o.push([c,c])}return o};
-  const leg=A.map(()=>new Int8Array(DC).fill(-1));
-  let r0=DR-1;while(r0>0&&runs(r0).length!==4)r0--;
-  let cen=runs(r0).map(q=>(q[0]+q[1])/2),top=r0;
-  for(let r=DR-1;r>=0;r--){const R=runs(r);
-    if(r<r0&&R.length!==4){top=r+1;break}
-    if(R.length===4)cen=R.map(q=>(q[0]+q[1])/2);
-    for(let c=0;c<DC;c++){if(A[r][c]===" ")continue;let k=0;for(let j=1;j<4;j++)if(Math.abs(cen[j]-c)<Math.abs(cen[k]-c))k=j;leg[r][c]=k}}
-  const P=[],hoof=[-1,-1,-1,-1],earR=Math.round(DR*.14),HN=Math.round(DR*.17),HE=Math.round(DR*.25);
-  let tail=null;
-  for(let r=0;r<DR;r++)for(let c=0;c<DC;c++){const ch0=A[r][c];if(ch0===" ")continue;
-    const k=r>=top?leg[r][c]:-1,i=P.length;
-    if(k>=0&&(hoof[k]<0||P[hoof[k]].r<r))hoof[k]=i;
-    if(r>HE&&r<HE+6&&(!tail||c>tail.c))tail={r,c};          // rump edge, where the tail flicks out
-    P.push({r,c,ch:ch0,v:DRAMP.indexOf(ch0)/(DRAMP.length-1),leg:k,lf:k>=0?Math.pow((r-top+1)/(DR-top),1.3):0,
-      hw:r<=HN?1:r<HE?1-(r-HN)/(HE-HN):0,ear:r<earR?(c<DC*.35?1:c>DC*.55?2:0):0,d:.6*Math.random()+.4*(1-c/DC),x:0,y:0,hid:false})}
-  // grass tufts on the ground around where it stops; denser in front of the muzzle so it has something to graze
-  const G=[];
-  for(let k=0;k<30;k++){const near=k<12,c=near?DC*.28+Math.random()*DC*.3:-DC*.9+Math.random()*DC*2.8;
-    G.push({c,h:near?2+(Math.random()*2|0):1+(Math.random()*3|0),n:1+(Math.random()*3|0),p:Math.random()*6.28,front:Math.random()<.5})}
-  Object.assign(deer,{pts:P,hoof,DR,DC,earR,HN,HE,tail,grass:G,occ:new Uint8Array(DR*DC)});
+  const DC=Math.max.apply(null,DEER.map(l=>l.length)),DR=DEER.length,P=[];
+  for(let r=0;r<DR;r++)for(let c=0;c<DEER[r].length;c++){const ch0=DEER[r][c];if(ch0===" ")continue;
+    P.push({r,c,ch:ch0,v:DRAMP.indexOf(ch0)/(DRAMP.length-1),
+      ear:r<6?(c<16?1:c>33?2:0):0,eye:r===10&&(c===18||c===19||c===27||c===28),
+      d:Math.min(.999,.62*Math.random()+.38*r/DR),d2:Math.min(.999,.6*Math.random()+.4*(1-r/DR)),
+      n:Math.random(),a:Math.random()*6.2832})}
+  Object.assign(deer,{pts:P,DR,DC});
 }
 // first "o": hit test in screen space, undoing the tilt shear the letters are drawn with
 function onFirstO(x,y){
@@ -405,141 +396,95 @@ function onFirstO(x,y){
   const r=(y-tiltY*ch*.8)/ch,x2=x-tiltX*cell*2.2-(r-rows/2)*tiltX*cell*.2,y2=y-tiltY*ch*.8,pad=Math.max(10,cell*1.5);
   return x2>=oBox.x0-pad&&x2<=oBox.x1+pad&&y2>=oBox.y0-pad&&y2<=oBox.y1+pad;
 }
-function rnd(a,b){return a+Math.random()*(b-a)}
-// a loose, random little routine: graze a couple of times, look around, flick ears, shuffle a step, then wander off
-function deerPlan(){
-  const q=[["idle",rnd(40,90)],["look",rnd(110,170)]],extra=[["ears",50],["step",80],["tail",45],["look",rnd(90,150)],["idle",rnd(30,80)]];
-  for(let k=0;k<2+(Math.random()*2|0);k++){
-    q.push(["graze",rnd(220,420)],["chew",rnd(100,170)]);
-    extra.sort(()=>Math.random()-.5);q.push(extra[0],extra[1]);
-  }
-  q.push(["look",rnd(100,140)],["idle",rnd(30,60)]);
-  return q;
-}
+// ---------- the camera: turn the head away from the word, a deer is there looking back, turn back ----------
+// three layers (rain / word / deer) get css 3d transforms; the word and the deer swing around the viewer, the rain only drifts a little (parallax)
+const CAM={TURN:1900,HOLD:7200,BACK:1900};
+let cam={st:"off"},rainOcc=null,camD=1000,camA=40; // camA: how far the head turns, less on narrow screens so the deer enters as the word leaves
+function sm(a,b,x){x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)}
+function eio(u){u=clamp(u,0,1);return u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2}
 function deerTap(){
   const now=performance.now();deer.taps=deer.taps.filter(s=>now-s<2200);deer.taps.push(now);
-  if(deer.taps.length<3||deer.st!=="off"||face.on)return;
+  if(deer.taps.length<3||cam.st!=="off"||face.on)return;
   deer.taps=[];if(!deer.pts)deerPrep();
-  Object.assign(deer,{st:"in",t0:t,ph:0,amp:0,dust:[],lift:[0,0,0,0],x:null,xo:0,xoT:0,
-    hx:0,hy:0,tl:0,hxT:0,hyT:0,tlT:0,el:0,ev:0,er:0,erv:0,tf:0,grow:0,q:deerPlan(),act:null});
-  try{bell(PENTA[4],0,.12,1.6);bell(PENTA[7],.18,.08,1.8);buzz([12,40,12])}catch(e){}
+  cam={st:"on",t0:now,p:0,blink:now+2600+Math.random()*1200,blinkN:0,ear:now+3200+Math.random()*2000,earS:0,earT:-1e9,ending:false};
+  flash=0;invert=0;shake=0;bolts=[];waves=[];reboots=[];clearTimeout(hold);hold=null;
+  try{unlockAudio();bell(PENTA[4],.1,.1,1.8);bell(PENTA[7],.5,.07,2)}catch(e){}
 }
-function earKick(side,s){if(side!==2)deer.ev+=s*(Math.random()<.5?-1:1);if(side!==1)deer.erv+=s*(Math.random()<.5?-1:1)}
-// sets pose targets for the current behaviour
-function deerAct(){
-  let a=deer.act;
-  if(!a||t-a.t0>=a.dur){const n=deer.q.shift();if(!n){deer.st="out";deer.t0=t;deer.hxT=deer.hyT=deer.tlT=0;return}
-    a=deer.act={k:n[0],dur:n[1],t0:t,dir:Math.random()<.5?-1:1,n:0}}
-  const u=(t-a.t0)/a.dur,G=deer.DR-3-deer.HN*.7;
-  if(a.k==="idle"){deer.hxT=0;deer.hyT=0;deer.tlT=0}
-  else if(a.k==="look"){const s=u<.45?a.dir:u<.8?-a.dir*.7:0;deer.hxT=s*4;deer.tlT=s*.2;deer.hyT=u<.8?-1.2:0;if(Math.random()<.03)earKick(0,.5)}
-  else if(a.k==="graze"){deer.hxT=Math.sin(a.t0)*1.5;deer.tlT=0;
-    deer.hyT=u<.9?G-(Math.sin((t-a.t0)*.11)>.6?1.6:0):0;                          // nibbling: tiny lifts while down
-    if(!a.gl&&u>.3&&u<.7&&Math.random()<.01)a.gl=t+rnd(50,90);                       // a quick wary glance up
-    if(a.gl>t){deer.hyT=G*.45;deer.hxT=a.dir*2}}
-  else if(a.k==="chew"){deer.hyT=Math.sin((t-a.t0)*.35)*.45;deer.hxT=u>.5?a.dir*1.6:0;deer.tlT=u>.5?a.dir*.06:0;if(Math.random()<.015)earKick(0,.6)}
-  else if(a.k==="ears"){if((t-a.t0)%17===0)earKick(a.n++%2?1:2,.9)}
-  else if(a.k==="step"){if(t===a.t0+1)deer.xoT=Math.max(-.12,Math.min(.12,deer.xoT+a.dir*rnd(.04,.07)))}
-  else if(a.k==="tail"){deer.tf=Math.max(0,Math.sin(u*Math.PI*3))}
+function camSet(el,tf,op){if(el._tf!==tf){el.style.transform=tf;el._tf=tf}const o=String(op);if(el._op!==o){el.style.opacity=o;el._op=o}}
+function camReset(){
+  for(const el of [cv,rc,dcv]){el.style.transform="";el.style.opacity="";el._tf=el._op=undefined}
+  try{rctx.setTransform(1,0,0,1,0,0);rctx.clearRect(0,0,rc.width,rc.height);dctx.setTransform(1,0,0,1,0,0);dctx.clearRect(0,0,dcv.width,dcv.height)}catch(e){}
+  rc.style.visibility=dcv.style.visibility="hidden";
 }
-const D_IN=420,D_OUT=420;
-// advances the scene and works out where every character goes this frame; marks the grid cells it covers (dz=1) and a soft halo (dz=2)
-function deerStep(){
-  if(deer.st==="off"){dz=null;return}
-  const age=t-deer.t0,DR=deer.DR,DC=deer.DC,P=deer.pts;
-  ctx.font="100px "+DFONT;deer.aw=ctx.measureText("@").width/100;
-  const wide=W>H,dh=Math.max(H*.38,Math.min(H*.5,H*.975-wordBot+H*.04)),fs=Math.min(dh/(DR*DLH),W*(wide?.6:.82)/(DC*deer.aw));
-  const w=DC*deer.aw*fs,h=DR*DLH*fs,xs=-w*1.05,xm=(W-w)/2,xe=W+w*.05;
-  let x;
-  if(deer.st==="in"){const u=Math.min(1,age/D_IN),e=1-Math.pow(1-u,1.8);x=xs+(xm-xs)*e;deer.grow=Math.min(1,u*1.3);deer.hyT=Math.sin(deer.ph*2)*.4;if(u>=1){deer.st="scene";deer.t0=t}}
-  else if(deer.st==="scene"){deerAct();deer.xo+=(deer.xoT-deer.xo)*.035;x=xm+deer.xo*w}
-  if(deer.st==="out"){const u=Math.min(1,(t-deer.t0)/D_OUT),e=Math.pow(u,1.7);x=xm+deer.xo*w+(xe-xm)*e;deer.grow=Math.max(0,1-u*1.6);
-    if(u>=1){deer.st="off";dz=null;return}}
-  const sp=deer.x===null?0:Math.abs(x-deer.x);
-  deer.ph+=sp/(w*.3)*Math.PI;                         // leg phase follows distance actually walked
-  deer.amp+=(Math.min(1,sp/(w*.006))-deer.amp)*.12;   // legs settle as it slows down
-  // pose springs: head drifts to its targets, ears flick and swing back, sometimes on their own
-  deer.hx+=(deer.hxT-deer.hx)*.05;deer.hy+=(deer.hyT-deer.hy)*(deer.hyT>deer.hy?.035:.06);deer.tl+=(deer.tlT-deer.tl)*.05;
-  if(Math.random()<.006)earKick(Math.random()<.5?1:2,.7);
-  deer.ev+=-deer.el*.09-deer.ev*.12;deer.el+=deer.ev;deer.erv+=-deer.er*.09-deer.erv*.12;deer.er+=deer.erv;
-  if(deer.act&&deer.act.k!=="tail")deer.tf*=.9;
-  deer.fs=fs;deer.w=w;deer.h=h;deer.x=x;deer.y=H*.975-h;
-  if(!dz||dz.length!==cols*rows)dz=new Uint8Array(cols*rows);else dz.fill(0);
-  const cw=deer.aw*fs,lh=DLH*fs,bob=(1-Math.cos(deer.ph*2))*.5*deer.amp*fs*.45,down=Math.max(0,Math.min(1,deer.hy/(DR*.5))),sq=1-.3*down;
-  // head first, so it can hide what is behind it when lowered
-  const occ=deer.occ;occ.fill(0);
-  for(const p of P){
-    let cx=p.c,cy=p.r;
-    if(p.hw>0){const k=p.hw;cy=p.r*(1-(1-sq)*k)+deer.hy*k;cx=p.c+deer.hx*k+deer.tl*(deer.HN-p.r)*k;
-      if(p.ear){const e=(p.ear===1?deer.el:deer.er)*(1-p.r/deer.earR);cx+=(p.ear===1?-e:e);cy-=Math.abs(e)*.25}
-      if(k>.6&&down>.1){const oc=Math.round(cx),orr=Math.round(cy);for(let b=-1;b<=1;b++)if(orr>=0&&orr<DR&&oc+b>=0&&oc+b<DC)occ[orr*DC+oc+b]=1}}
-    p.cx=cx;p.cy=cy}
-  for(const p of P){
-    let px_=x+p.cx*cw,py_=deer.y+p.cy*lh-bob*(1-p.lf);
-    p.hid=p.hw<.4&&down>.1&&occ[p.r*DC+p.c]===1;
-    if(p.leg>=0&&deer.amp>.01){const ph=deer.ph+(p.leg%2?0:Math.PI);
-      py_-=Math.max(0,Math.sin(ph))*p.lf*lh*1.6*deer.amp;px_+=Math.cos(ph)*p.lf*cw*2*deer.amp}
-    p.x=px_;p.y=py_;
-    if(p.hid)continue;
-    const gc=Math.floor((px_+cw*.5)/cell),gr=Math.floor((py_+lh*.5)/ch);
-    if(gc>=0&&gc<cols&&gr>=0&&gr<rows)dz[gr*cols+gc]=1;
+// advances the camera; returns false when it is not running
+function camStep(){
+  if(cam.st==="off")return false;
+  const now=performance.now(),age=now-cam.t0,T=CAM.TURN,HO=CAM.HOLD,B=CAM.BACK;
+  if(age>=T+HO+B){cam={st:"off"};rainOcc=null;camReset();return false}
+  let p,ph,hu=0;
+  if(age<T){p=eio(age/T);ph="turn"}
+  else if(age<T+HO){p=1;ph="hold";hu=(age-T)/HO}
+  else{p=1-eio((age-T-HO)/B);ph="back";hu=1;if(!cam.ending){cam.ending=true;try{bell(PENTA[2],0,.07,1.6)}catch(e){}}}
+  cam.p=p;cam.ph=ph;cam.age=age;cam.now=now;
+  rc.style.visibility=dcv.style.visibility="visible";
+  const A=camA,dolly=hu*36;
+  // turn around the eye, plus a little twist of each plane about its own centre so it visibly swings
+  const D=camD,tw=(z,b)=>`translateZ(${(z-D).toFixed(1)}px) rotateY(${b.toFixed(3)}deg) translateZ(${D}px)`;
+  camSet(cv,`rotateY(${(p*A).toFixed(3)}deg) `+tw(p*240,p*36),(1-sm(.22,.7,p)).toFixed(3));
+  camSet(dcv,`rotateY(${((p-1)*A).toFixed(3)}deg) `+tw((1-p)*-240+dolly,(p-1)*22),sm(.15,.6,p).toFixed(3));
+  camSet(rc,`translate3d(${(-p*W*.045).toFixed(1)}px,0,0) scale(${(1+.11*p).toFixed(4)})`,1);
+  cam.textA=1-sm(.22,.7,p);cam.deerA=sm(.15,.6,p);
+  return true;
+}
+// where the deer sits on its layer: ~46% of the screen height, centred, a little below the middle
+function deerLayout(){
+  dctx.font="100px "+DFONT;const aw=dctx.measureText("@").width/100,DR=deer.DR,DC=deer.DC;
+  const fs=Math.min(H*.46/(DR*DLH),W*.8/(DC*aw)),cw=aw*fs,lh=DLH*fs,w=DC*cw,h=DR*lh;
+  return {fs,cw,lh,w,h,x0:(W-w)/2,y0:H*.53-h/2};
+}
+function drawCamDeer(){
+  const L=deerLayout(),P=deer.pts,now=cam.now,age=cam.age,T=CAM.TURN,HO=CAM.HOLD,B=CAM.BACK,th=THEMES[cur];
+  const sat=th.s?10:0,hue=th.rh,DR=deer.DR;
+  // idle life: slow breathing, a rare ear flick, a soft blink
+  const br=Math.sin(age/3900*6.2832),hold=cam.ph==="hold";
+  if(hold&&now>cam.blink){cam.blinkT=now;cam.blink=now+(cam.blinkN++%3===2?260:2600+Math.random()*2600)}
+  const blink=now-(cam.blinkT||-1e9)<150;
+  if(hold&&now>cam.ear){cam.earT=now;cam.earS=Math.random()<.5?1:2;cam.ear=now+3500+Math.random()*3500}
+  const ek=clamp((now-cam.earT)/320,0,1),ef=ek>0&&ek<1?Math.sin(ek*Math.PI)*(1-ek*.4):0;
+  const back=cam.ph==="back"?(age-T-HO)/B:0;
+  const tx=tiltX*cell*.9,ty=tiltY*ch*.3,sweep=hold?((age-T)*.012)%(deer.DC+DR+80)-40:-999;
+  dctx.font=L.fs+"px "+DFONT;dctx.textBaseline="top";
+  const occ=new Uint8Array(cols*rows);
+  for(const q of P){
+    const at=700+q.d*1900;                       // when this character settles (ms from the tap)
+    if(age<at-520)continue;
+    let x=L.x0+q.c*L.cw,y=L.y0+q.r*L.lh,chr=q.ch,a=.45+q.v*.55,l=58+q.v*38,scr=false;
+    // breathing: body swells a hair around its centre, feet stay planted
+    y-=(DR-q.r)*L.lh*.0045*br;if(q.r>14)x+=(q.c-deer.DC*.5)*L.cw*.006*br;
+    if(q.ear&&q.ear===cam.earS&&ef){x+=(q.ear===1?-1:1)*ef*L.cw*1.2*(1-q.r/6);y-=ef*L.lh*.6*(1-q.r/6)}
+    if(q.eye&&blink){chr=q.c===18||q.c===27?"-":"-";l=40;a=.6}
+    if(age<at){const k=(age-(at-520))/520;scr=true;a=.12+.35*k;chr=JUNK[(Math.random()*JUNK.length)|0]}
+    else if(hold&&Math.random()<.0008){chr=rj()}
+    if(back>0){const s=q.d2*.62,k=(back-s)/.3;
+      if(k>0){if(k>=1)continue;scr=Math.random()<.85;if(scr)chr=rj();a*=1-k;x+=Math.cos(q.a)*k*L.cw*3;y-=k*L.lh*(1.5+q.n*3)}}
+    if(sweep>-999){const sw=Math.exp(-Math.pow(q.c+q.r*.6-sweep,2)/50);l=Math.min(96,l+sw*18);a=Math.min(1,a+sw*.2)}
+    dctx.fillStyle=scr?`hsl(${th.h} ${th.s?55:0}% 74% / ${a})`:`hsl(${hue} ${sat}% ${l}% / ${a})`;
+    dctx.fillText(chr,x+tx,y+ty);
+    if(!scr&&a>.35){const gc=Math.floor((x+L.cw*.5)/cell),gr=Math.floor((y+L.lh*.5)/ch);if(gc>=0&&gc<cols&&gr>=0&&gr<rows)occ[gr*cols+gc]=1}
   }
-  // soft halo around the silhouette so the rain brightens near it
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){if(dz[r*cols+c]!==1)continue;
-    for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++){const rr=r+a,cc=c+b;if(rr>=0&&rr<rows&&cc>=0&&cc<cols&&!dz[rr*cols+cc])dz[rr*cols+cc]=2}}
-  // hoof dust when a lifted foot comes down
-  for(let k=0;k<4;k++){const s=Math.sin(deer.ph+(k%2?0:Math.PI)),hp=P[deer.hoof[k]];
-    if(deer.lift[k]>0&&s<=0&&deer.amp>.25&&hp)for(let j=0;j<3+(Math.random()*3|0);j++)
-      deer.dust.push({x:hp.x+(Math.random()-.5)*cw*3,y:hp.y+lh*.6,vx:-(.15+Math.random()*.6),vy:-(.05+Math.random()*.35),life:40+Math.random()*30,max:70,ch:DUST[Math.random()*DUST.length|0]});
-    deer.lift[k]=s}
-  if(deer.st==="scene"&&Math.random()<.02){const p=P[Math.random()*P.length|0];deer.dust.push({x:p.x,y:p.y,vx:(Math.random()-.5)*.3,vy:-.2-Math.random()*.3,life:60,max:60,ch:Math.random()<.5?"*":"."})}
-}
-// grass tufts swaying on the ground line; they grow in as it arrives and wither away after it leaves
-function drawGrass(front){
-  const g=deer.grow;if(!g||!deer.grass)return;
-  const xm=(W-deer.w)/2,cw=deer.aw*deer.fs,lh=DLH*deer.fs,gy=deer.y+deer.h-lh*1.2,th=THEMES[cur];
-  const down=Math.max(0,Math.min(1,deer.hy/(deer.DR*.5))),mx=xm+(deer.DC*.45+deer.hx)*cw;
-  ctx.font="bold "+deer.fs*1.7+"px "+DFONT;ctx.textBaseline="top";
-  for(const q of deer.grass){if(q.front!==front)continue;
-    const bx=xm+q.c*cw,hh=Math.ceil(q.h*g),gw=cw*1.7,gl=lh*1.35;
-    for(let j=0;j<q.n;j++){const x0=bx+j*gw*.8;
-      const nib=down>.7&&Math.abs(x0-mx)<cw*5?Math.sin(t*.4+j)*1.2:0;      // tugged while it grazes
-      for(let r=0;r<hh;r++){
-        const s=Math.sin(t*.025+q.p+j*.7)*.8+Math.sin(t*.011+bx*.01)*.4+nib,top=r===hh-1;
-        const chr=r===0?(j%2?",":"."):top?(s>.45?"/":s<-.45?"\\":(j%2?"|":"'")):(s>.6?"/":s<-.6?"\\":"|");
-        const a=(.4+.45*(r+1)/q.h)*Math.min(1,g*1.5);
-        ctx.fillStyle=`hsl(${th.s?105:0} ${th.s?32:0}% ${58+r*9}% / ${a})`;
-        ctx.fillText(chr,x0+s*gw*.3*(r/q.h),gy-r*gl*.8)}}}
-}
-function drawDeer(){
-  if(deer.dust&&deer.dust.length){ctx.font=Math.max(7,deer.fs*1.1)+"px "+DFONT;ctx.textBaseline="top";
-    for(let k=deer.dust.length-1;k>=0;k--){const q=deer.dust[k];q.life--;if(q.life<=0){deer.dust.splice(k,1);continue}
-      q.x+=q.vx;q.y+=q.vy;q.vy+=.004;const a=q.life/q.max;ctx.fillStyle=`hsl(${THEMES[cur].rh} ${THEMES[cur].s?20:0}% 82% / ${a*.6})`;ctx.fillText(q.ch,q.x,q.y)}}
-  if(deer.st==="off")return;
-  drawGrass(false);
-  const age=t-deer.t0,P=deer.pts,th=THEMES[cur],sat=th.s?9:0,hue=th.rh,fs=deer.fs,cw=deer.aw*fs,lh=DLH*fs;
-  ctx.font=fs+"px "+DFONT;ctx.textBaseline="top";
-  const tx=tiltX*cell*1.2,ty=tiltY*ch*.4,calm=deer.st==="scene",breath=calm?Math.sin(t*.05)*fs*.12:0;
-  const sweep=calm?(age*.35)%(deer.DC+deer.DR+60)-30:-999;
-  for(const p of P){
-    if(p.hid)continue;
-    let x=p.x+tx,y=p.y+ty+(p.hw<1?breath*(p.r/deer.DR):0),chr=p.ch,a=.28+p.v*.72,l=48+p.v*48;
-    const gr=Math.floor((p.y+lh*.5)/ch);if(gr>=0&&gr<rows)x+=tear[gr]*.6;
-    if(deer.st==="in"){const due=10+p.d*110;                     // materialise: scramble, then settle
-      if(age<due-40)continue;
-      if(age<due){a=.18+.25*(1-(due-age)/40);
-        ctx.fillStyle=`hsl(${th.h} ${th.s?60:0}% 78% / ${a})`;ctx.fillText(rj(),x,y);continue}}
-    else if(Math.random()<.002)chr=rj();
-    if(calm){const sw=Math.exp(-Math.pow(p.c+p.r*.6-sweep,2)/40);l=Math.min(97,l+sw*20);a=Math.min(1,a+sw*.25)}
-    ctx.fillStyle=`hsl(${hue} ${sat}% ${l}% / ${a})`;ctx.fillText(chr,x,y);
-  }
-  // tail flick at the rump edge
-  if(deer.tf>.05&&deer.tail){const q=deer.tail,x=deer.x+(q.c+1)*cw+tx,y=deer.y+q.r*lh+ty-deer.tf*lh*1.2;
-    ctx.fillStyle=`hsl(${hue} ${sat}% 80% / ${.4+deer.tf*.5})`;ctx.fillText(deer.tf>.5?"'":"~",x,y);ctx.fillText(",",x-cw*.4,y+lh*.7)}
-  drawGrass(true);
+  // rain behind the deer dims inside its silhouette (rain layer is offset by the parallax, so map through it)
+  const g=new Uint8Array(cols*rows);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(occ[r*cols+c])for(let a2=-1;a2<=1;a2++)for(let b2=-1;b2<=1;b2++){const rr=r+a2,cc=c+b2;if(rr>=0&&rr<rows&&cc>=0&&cc<cols)g[rr*cols+cc]=1}
+  rainOcc={g,s:1+.11*cam.p,tx:-cam.p*W*.045,w:cam.deerA*sm(.75,1,cam.p)};
 }
 
-function fire(clientX,clientY,quiet){
+function fire(clientX,clientY,quiet,gentle){
+  // taps on the first "o" and anything during the deer scene stay soft: a few sparkles, no theme wipe, flashes or bolts
+  if(gentle||cam.st!=="off"){
+    if(!quiet){try{unlockAudio();SFX.tick()}catch(e){}}
+    for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,s=.6+Math.random()*2.4;
+      parts.push({x:clientX,y:clientY,vx:Math.cos(a)*s,vy:Math.sin(a)*s,g:.02,life:26+Math.random()*24,max:50,ch:rj(),hue:Math.random()})}
+    return}
   silent=!!quiet;
   const onDot=!quiet&&dot&&Math.hypot(clientX-dot.x,clientY-dot.y)<=Math.max(46,cell*4);
   const x=Math.max(0,Math.min(cols-1,clientX/cell|0)),y=Math.max(0,Math.min(rows-1,clientY/ch|0));
@@ -552,7 +497,7 @@ function fire(clientX,clientY,quiet){
   last=bag.pop();FX[last](x,y);
   try{if(!quiet){unlockAudio();if(SFX[last])SFX[last]();SFX.tick();buzz(BUZZ[last])}}catch(e){}
   silent=false;
-  if(!quiet&&!onDot&&!oTap&&!face.on&&!face.cnt){fontIn--;if(fontIn<=0){fontIn=3+(Math.random()*3|0);try{let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;glyphs(sty);drips=[]}catch(e){}}}
+  if(!quiet&&!onDot&&!face.on&&!face.cnt){fontIn--;if(fontIn<=0){fontIn=3+(Math.random()*3|0);try{let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;glyphs(sty);drips=[]}catch(e){}}}
   // click counter: milestones and combos
   if(!quiet){
     clicks++;combo=(t-lastClick<32)?combo+1:1;lastClick=t;try{faceHit(onDot,clientX,clientY)}catch(e){}
@@ -579,7 +524,9 @@ function drawRain(adv,mul,over){
       const rr=Math.floor(d.y)-j;if(rr<0||rr>=rows)continue;
       if(!over&&mask[rr*cols+c]>.15)continue;
       const z=dz&&!over?dz[rr*cols+c]:0;if(z===1)continue;
-      const f=1-j/len,th=themeAt(c,rr),hb=z===2?2.2:1;
+      let f=1-j/len;const th=themeAt(c,rr),hb=z===2?2.2:1;
+      if(rainOcc&&rainOcc.w>0&&over&&ctx===rctx){const sx=(c*cell-W/2)*rainOcc.s+W/2+rainOcc.tx,sy=(rr*ch-H/2)*rainOcc.s+H/2,gc=Math.floor(sx/cell),gr=Math.floor(sy/ch);
+        if(gc>=0&&gc<cols&&gr>=0&&gr<rows&&rainOcc.g[gr*cols+gc]){if(j==0)continue;f*=1-.85*rainOcc.w}}
       ctx.fillStyle=j==0?`hsl(${th.rh} ${th.s?60:0}% 88% / ${(.55+rainBoost*.4)*mul})`:`hsl(${th.rh} ${th.s?100:0}% ${z===2?70:58}% / ${(.04+.2*f*f)*(1+rainBoost*1.6)*mul*hb})`;
       ctx.fillText(JUNK[(c*7+rr*3+(t>>3)*(j+1))%JUNK.length],c*cell-tiltX*cell*2.2+(rr-rows/2)*tiltX*cell*.22,rr*ch-tiltY*ch*.6);
     }
@@ -591,7 +538,7 @@ let stars=null;
 function drawStars(mul){
   if(!stars||stars.cols!==cols||stars.rows!==rows){const n=Math.max(20,cols*rows/260|0);stars={cols:cols,rows:rows,a:Array.from({length:n},()=>({c:Math.random()*cols|0,r:Math.random()*rows|0,p:Math.random()*6.28,sp:.012+Math.random()*.03,ch:"+*.:'`"[Math.random()*6|0]}))}}
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
-  for(const q of stars.a){const v=Math.sin(t*q.sp+q.p);if(v<.55)continue;if(mask[q.r*cols+q.c]>.15&&mul===1)continue;if(dz&&dz[q.r*cols+q.c]===1)continue;
+  for(const q of stars.a){const v=Math.sin(t*q.sp+q.p);if(v<.55)continue;if(mask[q.r*cols+q.c]>.15&&mul===1&&cam.st==="off")continue;if(dz&&dz[q.r*cols+q.c]===1)continue;
     const th=themeAt(q.c,q.r);ctx.fillStyle=`hsl(${th.rh} ${th.s?70:0}% 85% / ${(v-.55)*.9*mul})`;ctx.fillText(q.ch,q.c*cell,q.r*ch)}
 }
 // a soft trail of characters behind the finger or cursor
@@ -608,9 +555,11 @@ function frame(){
   if(!motionLive){tgtX=px>-900?clamp((px/W-.5)*2,-1,1):0;tgtY=py>-900?clamp((py/H-.5)*2,-1,1):0}
   tiltX+=(tgtX-tiltX)*.08;tiltY+=(tgtY-tiltY)*.08;
   if(RM){shake=0;flash=Math.min(flash,.06);invert=0}
-  if(t-lastInput>60*25&&(t-lastInput)%(60*12)===0){fire(Math.random()*W,Math.random()*H,true)}
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.fillStyle="#060608";ctx.fillRect(0,0,W,H);
+  if(cam.st==="off"&&t-lastInput>60*25&&(t-lastInput)%(60*12)===0){fire(Math.random()*W,Math.random()*H,true)}
+  const camOn=camStep();
+  ctx=mctx;ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(camOn){flash=0;invert=0;shake=0;ctx.clearRect(0,0,W,H)}
+  else{ctx.fillStyle="#060608";ctx.fillRect(0,0,W,H)}
   if(shake>0){shake*=.9;if(shake<.3)shake=0;ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake)}
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;
   ctx.textBaseline="top";
@@ -624,13 +573,14 @@ function frame(){
   const cyc=(t%900)/900,bandX=-.2*cols+cyc*1.4*cols;
   const mx=px/cell,my=py/ch;
   const decode=Math.min(1,t/110);
-  try{deerStep()}catch(e){dz=null}
-  drawRain(true,1,false);
-  drawStars(1);
+  if(camOn){ // rain + stars on their own slower layer
+    ctx=rctx;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle="#060608";ctx.fillRect(0,0,W,H);
+    drawRain(true,1,true);drawStars(1);ctx=mctx;ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
+  }else{drawRain(true,1,false);drawStars(1)}
   // soft glow of the word shape underneath, makes it readable
   try{ctx.globalAlpha=.9;ctx.drawImage(back,tiltX*cell*2.2,tiltY*ch*.8,W,H);ctx.globalAlpha=1}catch(e){}
   // ---- letters + background ----
-  for(let r=0;r<rows;r++){
+  for(let r=0;r<rows&&!(camOn&&cam.textA<.01);r++){
     for(let c=0;c<cols;c++){
       const i=r*cols+c,m=mask[i];
       if(dz&&dz[i]===1)continue;
@@ -708,6 +658,8 @@ function frame(){
     ctx.shadowBlur=0;
   }
   // ---- particles ----
+  if(camOn){ctx=dctx;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);try{drawCamDeer()}catch(e){}
+    ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top"}
   for(let k=parts.length-1;k>=0;k--){
     const p=parts[k];p.life--;if(p.life<=0){parts.splice(k,1);continue}
     p.vy+=p.g;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;
@@ -716,12 +668,10 @@ function frame(){
     ctx.fillStyle=`hsl(${(th.h+th.a*(p.hue*2-1)+360)%360} ${th.s?95:0}% ${60+a*30}% / ${Math.min(1,a*1.6)})`;
     ctx.fillText(p.ch,p.x,p.y);
   }
-  // ---- soft scanlines ----
-  try{drawDeer()}catch(e){}
+  if(camOn){try{drawTrail()}catch(e){}ctx=mctx;return}
   try{drawFace()}catch(e){}
   try{drawTrail()}catch(e){}
-  ctx.fillStyle="rgba(0,0,0,.18)";
-  for(let y=0;y<H;y+=3)ctx.fillRect(0,y,W,1);
+  // (soft scanlines are a css overlay now, so they stay put while the camera moves)
   // ---- full-screen flash / invert ----
   if(flash>0.01){ctx.fillStyle=`rgba(255,255,255,${flash})`;ctx.fillRect(0,0,W,H);flash*=.8}
   if(invert>0){invert--;const p=1-invert/26;ctx.globalCompositeOperation="difference";
@@ -738,9 +688,12 @@ function finale(x,y){
     FX.shockwave(x/cell|0,y/ch|0);FX.explode(x/cell|0,y/ch|0);FX.lightning(x/cell|0,y/ch|0);
     SFX.explode();SFX.colors();noise(1.2,.35,150,1000,0,"lowpass",.7);buzz([40,30,80,30,140,30,220])}catch(e){}
 }
-addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;lastInput=t;oTap=onFirstO(e.clientX,e.clientY);fire(e.clientX,e.clientY);
-  if(oTap){oTap=false;try{deerTap()}catch(err){}}
-  hx=px;hy=py;clearTimeout(hold);hold=setTimeout(()=>{finale(hx,hy);hold=null},700)});
+addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;lastInput=t;
+  const onO=cam.st==="off"&&!face.on&&onFirstO(e.clientX,e.clientY);
+  fire(e.clientX,e.clientY,false,onO);
+  if(onO){try{deerTap()}catch(err){}}
+  hx=px;hy=py;clearTimeout(hold);hold=null;
+  if(!onO&&cam.st==="off")hold=setTimeout(()=>{if(cam.st==="off")finale(hx,hy);hold=null},700)});
 addEventListener("pointerup",()=>{clearTimeout(hold);hold=null});
 addEventListener("pointercancel",()=>{clearTimeout(hold);hold=null});
 addEventListener("pointerleave",()=>{px=py=-999});
