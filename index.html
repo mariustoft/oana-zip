@@ -385,10 +385,44 @@ function deerPrep(){
   const DC=Math.max.apply(null,DEER.map(l=>l.length)),DR=DEER.length,P=[];
   for(let r=0;r<DR;r++)for(let c=0;c<DEER[r].length;c++){const ch0=DEER[r][c];if(ch0===" ")continue;
     P.push({r,c,ch:ch0,v:DRAMP.indexOf(ch0)/(DRAMP.length-1),
-      ear:r<8?(c<=19?1:c>=26?2:0):0,eye:r===10&&(c===18||c===19||c===27||c===28),
+      ear:r<8?(c<=19?1:c>=26?2:0):0,eye:r===9&&(c===18||c===19||c===27||c===28), // the dark eye spots: row 9 (row 10 is the pale ring under them)
       d:Math.min(.999,.62*Math.random()+.38*r/DR),d2:Math.min(.999,.6*Math.random()+.4*(1-r/DR)),
       n:Math.random(),a:Math.random()*6.2832})}
-  Object.assign(deer,{pts:P,DR,DC});
+  const M=new Uint8Array(DR*DC);for(const q of P)if(q.v>.2)M[q.r*DC+q.c]=1;
+  Object.assign(deer,{pts:P,DR,DC,mask:M,aura:null});
+}
+// ---------- aura: a wide, faint halo of drifting characters around the deer (behind it, on the deer layer) ----------
+const AURA_N=120,AURA_CH=".,'`:.*.'`,.:+*'.";
+function auraSpawn(o,fresh){
+  const P=deer.pts,DR=deer.DR,DC=deer.DC;
+  // start near a random character of the silhouette (head and back a little favoured), pushed out by a falloff radius
+  let q=P[(Math.random()*P.length)|0];for(let k=0;k<2&&q.r>34&&Math.random()<.5;k++)q=P[(Math.random()*P.length)|0];
+  const d=.03+Math.pow(Math.random(),.95)*.37,an=Math.random()*6.2832;  // distance in units of the deer's height
+  o.x=q.c+Math.cos(an)*d*DR*1.9;o.y=q.r+Math.sin(an)*d*DR*.95-d*DR*.25;
+  o.d=d;o.vy=-(.35+Math.random()*.6);o.vx=(Math.random()-.5)*.25;o.sw=Math.random()*6.2832;o.sf=.3+Math.random()*.5;
+  o.life=5200+Math.random()*5200;o.t0=fresh?Math.random()*o.life:0;o.tw=Math.random()*6.2832;o.tf=.8+Math.random()*1.6;
+  o.b=(Math.random()*3)|0;o.ch=d<.14&&Math.random()<.45?"*+:'"[(Math.random()*4)|0]:AURA_CH[(Math.random()*AURA_CH.length)|0];o.warm=Math.random()<.22;o.k=Math.random();
+}
+function drawAura(L,age,now,fade,th){
+  if(!deer.aura){deer.aura=[];for(let i=0;i<AURA_N;i++){const o={};auraSpawn(o,true);deer.aura.push(o)}deer.aT=now}
+  const dt=Math.min(60,now-(deer.aT||now))/1000;deer.aT=now;if(fade<=.003)return;
+  const DR=deer.DR,DC=deer.DC,M=deer.mask,sat=th.s?14:0;
+  for(const o of deer.aura){o.t0+=dt*1000;if(o.t0>=o.life)auraSpawn(o,false);o.y+=o.vy*dt;o.x+=o.vx*dt}
+  for(let bk=0;bk<3;bk++){
+  dctx.font=(L.fs*(1.35+bk*.4))+"px "+DFONT;   // specks a little larger than the deer's own characters so they read as motes
+  for(const o of deer.aura){
+    if(o.b!==bk)continue;const u=o.t0/o.life;
+    const env=Math.sin(Math.PI*u),twk=.62+.38*Math.sin(now/1000*o.tf+o.tw);   // soft rise and fall of each speck, gentle twinkle
+    const near=Math.exp(-o.d*o.d/.028);                                       // denser and brighter close to the deer
+    let a=Math.min(.6,fade*env*twk*(.26+.5*near)*(o.k<.12?1.2:1));
+    const mr=Math.round(o.y),mc=Math.round(o.x);
+    if(mr>=0&&mr<DR&&mc>=0&&mc<DC&&M[mr*DC+mc])a*=.3;                       // keep the deer itself clean
+    if(a<.008)continue;
+    const x=L.x0+(o.x+Math.sin(now/1000*o.sf+o.sw)*.6)*L.cw+tiltX*cell*.9,y=L.y0+o.y*L.lh+tiltY*ch*.3;
+    dctx.fillStyle=o.warm?`hsl(42 ${th.s?48:22}% 84% / ${a.toFixed(3)})`:`hsl(${th.rh} ${sat}% ${80+o.k*12}% / ${a.toFixed(3)})`;
+    dctx.fillText(o.ch,x,y);
+  }}
+  dctx.font=L.fs+"px "+DFONT;
 }
 // first "o": hit test in screen space, undoing the tilt shear the letters are drawn with
 function onFirstO(x,y){
@@ -405,7 +439,7 @@ function eio(u){u=clamp(u,0,1);return u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2}
 function deerTap(){
   const now=performance.now();deer.taps=deer.taps.filter(s=>now-s<2200);deer.taps.push(now);
   if(deer.taps.length<3||cam.st!=="off"||face.on)return;
-  deer.taps=[];if(!deer.pts)deerPrep();
+  deer.taps=[];if(!deer.pts)deerPrep();deer.aura=null;
   // 2-3 ear twitches during the hold, at random moments, alternating ears; some get a quick second flick
   const tw=[],hs=now+CAM.TURN;let te=hs+900+Math.random()*700,side=Math.random()<.5?1:2;
   while(te<hs+CAM.HOLD-900&&tw.length<3){tw.push({t:te,s:side,dbl:Math.random()<.4});side=3-side;te+=1500+Math.random()*1100}
@@ -465,6 +499,8 @@ function drawCamDeer(){
   const back=cam.ph==="back"?(age-T-HO)/B:0;
   const tx=tiltX*cell*.9,ty=tiltY*ch*.3,sweep=hold?((age-T)*.012)%(deer.DC+DR+80)-40:-999;
   dctx.font=L.fs+"px "+DFONT;dctx.textBaseline="top";
+  // aura fades in as the deer assembles and out as it dissolves
+  try{drawAura(L,age,now,cam.deerA*sm(1300,3300,age)*(1-sm(0,.55,back)),th)}catch(e){}
   const occ=new Uint8Array(cols*rows);
   for(const q of P){
     const at=700+q.d*1900;                       // when this character settles (ms from the tap)
