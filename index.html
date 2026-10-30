@@ -27,6 +27,50 @@ canvas{position:absolute;left:0;top:0;width:100vw;height:100vh;height:100dvh;dis
 .scan{pointer-events:none;position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.18) 1px,transparent 1px,transparent 3px)}
 h1{position:absolute;left:-9999px}
 .vig{pointer-events:none;position:fixed;left:0;top:0;width:100vw;height:100vh;height:100dvh;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.8))}
+/* ---- poems view: the list of Oana's poems, built from characters, scrolling inside its own container ---- */
+#pv{position:fixed;left:0;top:0;right:0;bottom:0;z-index:5;--h:280;--s:85%;--tf:Georgia,serif;--tw:400;--tst:normal;--bf:Georgia,serif;--bk:1;--bs:clamp(17px,4.6vw,19px)}
+#pv[hidden]{display:none}
+#pv .shade{position:absolute;top:0;bottom:0;left:50%;width:min(100%,calc(62 * .55 * var(--bs) + 40vw));transform:translateX(-50%);pointer-events:none;
+  background:linear-gradient(90deg,rgba(6,6,8,0),rgba(6,6,8,.74) 22%,rgba(6,6,8,.8) 50%,rgba(6,6,8,.74) 78%,rgba(6,6,8,0));opacity:0;transition:opacity .5s ease}
+#pv.on .shade{opacity:1}
+#pvs{position:absolute;left:0;top:0;right:0;bottom:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;
+  scrollbar-width:thin;scrollbar-color:hsla(var(--h),30%,70%,.22) transparent;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,transparent calc(env(safe-area-inset-top,0px) + 30px),#000 calc(env(safe-area-inset-top,0px) + 96px),#000 calc(100% - 90px),transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,transparent calc(env(safe-area-inset-top,0px) + 30px),#000 calc(env(safe-area-inset-top,0px) + 96px),#000 calc(100% - 90px),transparent 100%)}
+#pvs::-webkit-scrollbar{width:3px}#pvs::-webkit-scrollbar-track{background:transparent}#pvs::-webkit-scrollbar-thumb{background:hsla(var(--h),30%,70%,.22);border-radius:3px}
+#pv .col{box-sizing:content-box;max-width:calc(62 * .55 * var(--bs));margin:0 auto;font-size:var(--bs);
+  padding:calc(env(safe-area-inset-top,0px) + 84px) max(20px,env(safe-area-inset-right,0px)) calc(48vh + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));
+  opacity:0;transition:opacity .35s ease}
+#pv.on .col{opacity:1}
+#pv .pm{margin:0}
+#pv .pt{all:unset;box-sizing:border-box;display:flex;align-items:baseline;gap:.55em;width:100%;min-height:44px;padding:9px 0 9px;cursor:pointer;
+  font-family:var(--tf);font-weight:var(--tw);font-style:var(--tst);font-size:clamp(18px,5.1vw,22px);line-height:1.32;text-transform:none;letter-spacing:.01em;
+  color:hsla(var(--h),calc(var(--s) * .3),76%,.5);touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;
+  overflow-wrap:anywhere;transition:color .45s ease,text-shadow .45s ease}
+@media (hover:hover){#pv .pt:hover{color:hsla(var(--h),calc(var(--s) * .38),80%,.72)}}
+#pv .pt:focus-visible{color:hsla(var(--h),calc(var(--s) * .38),80%,.72)}
+#pv .pt:focus-visible .mk{color:hsla(var(--h),var(--s),70%,1)}
+#pv .mk{flex:none;font:400 .8em/1 ui-monospace,Menlo,Consolas,monospace;color:hsla(var(--h),calc(var(--s) * .7),66%,.45);transition:color .45s ease;width:1ch}
+#pv .tt{flex:1 1 auto;min-width:0}
+#pv .pm.open .pt{color:hsla(var(--h),calc(var(--s) * .55),86%,1);text-shadow:0 0 14px hsla(var(--h),90%,60%,.3)}
+#pv .pm.open .mk{color:hsla(var(--h),var(--s),70%,.95)}
+#pv .pw{overflow:hidden}
+#pv .pb{padding:2px 0 30px calc(.8em + 1ch);font-family:var(--bf);font-weight:400;font-style:normal;font-size:calc(var(--bs) * var(--bk));line-height:1.62;letter-spacing:.005em;text-transform:none;
+  color:hsla(var(--h),calc(var(--s) * .16),91%,.96);text-shadow:0 0 18px hsla(var(--h),80%,55%,.18);opacity:0;transform:translateY(-6px);
+  transition:opacity .45s ease,transform .45s ease;-webkit-user-select:text;user-select:text}
+#pv .pm.open .pb{opacity:1;transform:none}
+#pv .st{margin:0 0 1.1em}#pv .st:last-child{margin-bottom:0}
+#pv .l{display:block;white-space:pre-wrap;padding-left:1.3em;text-indent:-1.3em;overflow-wrap:anywhere}
+#pv .pvtop{position:absolute;left:0;right:0;top:0;z-index:2;height:calc(env(safe-area-inset-top,0px) + 56px);pointer-events:none;opacity:0;transition:opacity .35s ease}
+#pv.on .pvtop{opacity:1}
+#pv .pvtop button{all:unset;pointer-events:auto;position:absolute;top:env(safe-area-inset-top,0px);height:52px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font:400 14px/1 ui-monospace,Menlo,Consolas,monospace;color:hsla(var(--h),calc(var(--s) * .35),78%,.5);touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:color .3s ease;text-transform:lowercase}
+#pv .pvtop button:focus-visible,#pv .pvtop button.hv{color:hsla(var(--h),calc(var(--s) * .5),84%,.9)}
+#pv .pvtop .pvback{left:max(8px,env(safe-area-inset-left,0px));width:48px;font-size:18px !important}
+#pv .pvtop .pvlabel{left:50%;transform:translateX(-50%);padding:0 14px;letter-spacing:.32em}
+#pv.gl .col{animation:pvgl .3s steps(3) 1}
+@keyframes pvgl{0%{text-shadow:-2px 0 rgba(255,40,210,.5),2px 0 rgba(0,230,255,.5);transform:translateX(1px)}40%{text-shadow:2px 0 rgba(255,40,210,.45),-2px 0 rgba(0,230,255,.45);transform:translateX(-1px)}100%{text-shadow:none;transform:none}}
+@media (prefers-reduced-motion:reduce){#pv .pt,#pv .pb,#pv .col,#pv .pvtop,#pv .shade{transition-duration:.12s}#pv.gl .col{animation:none}}
 </style>
 </head>
 <body>
@@ -34,6 +78,8 @@ h1{position:absolute;left:-9999px}
 <div id="scene"><canvas id="r"></canvas><canvas id="c" aria-label="oana.zip"></canvas><canvas id="d"></canvas></div>
 <div class="vig"></div>
 <div class="scan"></div>
+<div id="pv" hidden inert aria-label="poems"><div class="shade"></div><div id="pvs"><div class="col"><div id="pvlist"></div></div></div><div class="pvtop"><button class="pvback" type="button" aria-label="back to oana.zip">&lt;</button><button class="pvlabel" type="button" aria-label="oana.zip, tap three times to go back">oana.zip</button></div></div>
+<script type="application/json" id="poems-data">[{"title":"Aici mă simțeam bard din Evul Mediu sau cv","body":"I'm a jester that performs,\nNothing less and nothing more\nI'm an artist and my purpose\nIs to entertain your soul.\n\nJust an empty shell I am,\nAnd I've got stories to tell,\nI'm not speaking but a muse\nAnd I'm here to amuse.\n\nI am acting for the masses,\nUntil the whole world collapses\n'Cause Rome fell and so did Greece\nBut I'm still playing my piece.\n\nBecause artists, we don't die\nWe play dramas and sing lies,\nWe are made the Gods to please\nAnd we're doing it with ease."},{"title":"Aici sufeream sau cv","body":"Contemptuous attitude towards cannibalism.\nI love taboos. Dissecting human beings.\nLet me caress your spleen.\nAllow me to take a bite of your kidney.\nTo devour your brain and consume your heart.\nGive me permission to kill you and feed on you.\nUntil you vanish out of this ephemeral world.\nLet's be one. Forever.\nEternal."},{"title":"Poezia românească","body":"Care mă duce la birt\n\nPoezia românească\nNu poate fi înțeleasă\nDecât după ce ai la bord\nMăcar 50 de Smirnoff.\n\nPoezia"},{"title":"Ca geniul poetic","body":"Ca geniul poetic\nAm vrut să văd dacă-mi găsesc idealul în iubire\nSpre marea mea dezamăgire\nNu.\nPentru că nu-i nimeni care să intre\nÎn standardele frivole\nAle unui om\nCe caută perfecțiune.\n\nE o tâmpenie să zic\nCă m-am îndrăgostit de un ideal\nȘi acum mi se pare banal\nTot ce-i uman.\n\nSunt obsedată\nDe ceva ce nici măcar serafii nu cunosc\nVreau să iubesc\nCum Dumnezeu iubește omul\nO prostie-\nȘi cred că-i zice blasfemie."},{"title":"Am încercat să iubesc","body":"Am încercat să iubesc,\nfără să aștept nimic în schimb\nși mi-am dat seama rapid\ncât de\nobsesiv\nsună\nîntrebarea:\n\"Hey, de ce nu mi-ai spus 'bună'\nexact când te-ai trezit?\"\nPentru tine poate nu-nseamnă nimic,\nun gest kitschos\ndar pentru mine,\nchiar ș-un emoji de la tine\nînseamnă tot.\n\nAș vrea să vorbim\nde parcă ne știm\nde o eternitate.\nDar totuși,\nnu vreau doar vorbe,\nvreau și fapte\nȘi vreau,\nvreau să îmi zici\ncă totul o să fie bine.\nCă tu mă vrei doar pe mine.\n\nAș vrea să am siguranța\ncă nu mă voi sinucide\nîntr-o seară de 17 august,\nascultând piese insipide\nși citind în continuare\ncărțile lui Proust.\nAș vrea să am certitudinea\nfericirii și\nși aș vrea să nu mă tem\ncă fac un AVC\nși mă duc dracului\nfără să dau un semn.\nAș vrea să nu mă mai consum\ncu toți proștii,\ncare n-au făcut o școală\ndar au păreri\ncare mă bagă-n boală\nși care\ncare nu înțeleg în pula mea\nla ce e bun un psiholog\nși de ce simt că o iau randeaua.\n\nȘi aș vrea liniște."},{"title":"Iubire","body":"Iubire.\nEufemism prozaic\npentru\nsuferință, durere\nși\nși alte cele.\nE oare prea excentric\nsă cred că\nnenorocitul, fantasticul\nOrfeu\nnu este emeritul în iubire\nci sunt eu?\nAm credința asta\nproastă,\ncă iubirea omenească\ne ca stelele în firmament.\n\nReprezentare iluzorie negată vehement."},{"title":"Place prea mult poezia","body":"plă e prea mult poezia\nca să mai țin cont\ncă imit calomnia\nși că\nnimeni nu mai citește\nversuri fără pont.\n\nNu am un punct\nanume\nunde vreau s-ajung,\ndar parc-aș sta\ndeasupra,\nn-aș vrea să mă afund,\nsă scriu maculatură de duzină\ncând societatea deja e arhiplină\nde vorbe fără noimă,\naberații și\ndoctrine și\nși\n\"mamă ce le dai în rime.\"\n\nNu e că vreau s-obțin\ndar e că vreau să las,\nnu e că vreau să fie\ndar de vor fi rămas\n\nmăcar 3 idei\nș-un vers\nștiu că toată\ntruda\nmă chinuie c-un sens."},{"title":"Terminați cu prostiile","body":"Terminați cu prostiile\nși epifaniile\nși\naerele de artiști,\nvrăjeala că sunteți triști,\nși d-aia,\nd-aia voi nu faceți poezie\nvoi\n\"puneți din suflet pe hârtie.\"\n\nMâncați căcat de-a-n pulea,\nscuzați limbaju',\nda' să mor de nu-i aiurea\ncum consumă lumea\njocuri de cuvinte,\ntâmpite,\ngen \"tine\" rimează cu \"mine\"\nși zic ăștia:\n\"Ce bine!\ntipu' ăsta chiar simte!\"\n\nSimțiți pe dracu'...\nnu că aș scrie eu opere de\ncenaclu\ndar măcar scriu sincer\n\nși onest,\np-ăștia numa' după bani\ntot \"din suflet\" vă detest."},{"title":"HXQ917","body":"Elocvent și samavolnic\nPseudo-martir bicisnic\nÎn tumultul macrocosmic\nEfemer geniu liric.\nBiet copil cu insomnii\nAre-n somn paralizii\nCu viziuni și profeții\nHarul beatitudinii.\nIntrospectând stigmatizat\nSacrosanct emancipat\nInstinctiv premeditat\nChip mesiatic emfazat.\nNu a uitat, nu va uita\nToată truda și sforțarea\nConștiinței colective\nEfectul gloatei primitive."},{"title":"ZHR34Q61","body":"Poezia e o\npleșcăviță sârbească de cuvinte,\ndacă mi se permite.\nUn fel de\nmaterie neagră\ncare se propagă\nefectiv peste tot\nși ne stresează.\nVrem s-o înțelegem.\nCe e poezia, de fapt?\nObiect psiho-social abstract.\nCe e aia?\nUn căcat frapant,\ncă ne sperie ce nu înțelegem\nși noi nu înțelegem nici măcar\nce-i așa terifiant."},{"title":"Altă blasfemie","body":"Nu am nevoie\nde\nvalidarea unui\nerudit\ncând eu doar spun\nce vreau\nce văd\nce simt.\nSă dezbat\ndacă\npoezia mea e poezie?\nE ce vrea ea să fie.\nE\nun strigăt,\nun urlet,\nun răcnet.\nE cutia Pandorei,\ndar deschisă demult.\nO Fecioara Maria\ndupă ce a născut."},{"title":"Fă, să vă explic aesthetic-ul meu","body":"Fă,\nsă vă explic aesthetic-ul meu\ne la fel de greu\ncum e să îi explici mă-tii\ncine e Character.AI\nși de ce ți-a spus\ncă te iubește."},{"title":"Mi-am format un tabiet","body":"Mi-am format un tabiet\nascultând\nmuzică proastă,\ncitind literatură rusească\nși plângând.\nS-ar zvârcoli\nPushkin\nîn groapă\ndacă ar știi\ncă ascult Megadeth\nși-i citesc din poezii."},{"title":"Paraclis","body":"Paraclis.\nMaica Precista iartă-mă\ncă nu-s nici fariseu\nnici vameș.\nSunt un nici nu mai știu ce,\nun talmeș-balmeș\nde păcate\nadunate.\nSunt Iuda l-a-nghițit cumva pe Toma\ndar și Iona.\nSodoma și Gomora mă cuprind\nși mă pierd și mă înec\nîntr-un ocean de perfidie.\nEuforie,\ncând ard în lad\no veșnicie."},{"title":"Am I just a jester","body":"Am I just a jester\nWho performs for the Gods?\nAnd if I am so mighty,\nWhere are my regards?\n\nThey said I made a pact,\nA Faustian bargain.\nWith the devil himself,\nFor talent. Just a grain.\n\nMight I be just a fool\nWho entertains the Holy?\nAnd if I'm truly so,\nWhere would be all my glory?\n\nThey said I'm just a vessel,\nA voice used by the muses.\nA way to spread a gospel,\nA madman who amuses."},{"title":"E greu să fii femeie","body":"E greu să fii femeie\nși să faci poezie.\nOrice am scrie\neste\ntratat\ncu superficialitate.\nȘi scriem mult,\nși bine,\ndar suntem\nignorate\nși suntem\natacate\nde bărbați\ncare\nnici nu au talent\ndar au alți bărbați\nîn spate."},{"title":"Sărut postmortem","body":"Sărut postmortem.\nȘtiu că e\nimoral\nsă fii atras\nde\nrigor mortis,\ndar ce-i acum\nși-atunci n-a fost\nnu mă încântă,\ncăci vreau\nce-a fost\nși\nce-a fost\nacum se uită.\nSau diferență\nva să fie\nîntre cadavru\nși stafie?\nOri ce-i trupesc-\nnelegiuire\nși doar în spirit\npoți...\niubire?"},{"title":"Sentință","body":"Sentință.\nBiciuit să fiu\ndacă-i nelege\nsă iubesc\nprostesc,\nce inima alege.\nȘi să mă jupuiți,\ncând mai naiv din fire\ndau tot\nși bani\nși aur\nca să obțin iubire.\nȘi să mă schingiuiți,\ndacă pic în ispită\nși uit tot ce cunosc\npentru a mea iubită."},{"title":"Moments","body":"Moments.\nTime passes(?)\nand\nit feels like\nI am\ntrapped\nin a spider web.\nCaught\nin a\nneverending\nforeign land\nand,-\nand it feels\nlike\nI've passed\nthrough\nthe veil\nto no avail.\nVain,\nreaching the\nrealm\nof fae.\n\nFor I am human, and no fae. For dust I am and to\ndust I shall return."},{"title":"GYIYR6","body":"E oare prea obscen\ndacă as presupune\nca nu mai este nimeni\nla fel ca tine\nîn lume?\nAtât de diferiți,\naș vrea să-ți spun\nnemesis.\nPentru că eu detest\ncât de tu poți fi.\nȘi cât de tu\nsunt eu\nnu-ți poți închipui.\nE oare asta soarta\ncare deschide poarta\nși care-n mine primește\nce nu știu că-mi priește?\nSau să îi zic destin\ncare în chip hain\nscoate ce am în mine\nca să am loc\nde tine?"},{"title":"Poezia feministă","body":"Poezia feministă\nCel mai bine este scrisă\nDe-un bărbat de vârsta a treia\nCare i-a plecat femeia."},{"title":"Ar fi o calomnie","body":"Ar fi o calomnie\nsă-mi zici că am talent.\nȘi ar fi blasfemie\nsă-mi spui că sunt poet.\nȘi spectacol de teatru\ndacă ți s-ar părea\ncă prin ceea ce scriu\naș vrea să spun ceva.\n\nDoar un bufon eu sunt,\ncare cu poezia\nare un singur scop-\nsă-și arate prostia.\n\nZâmbește-mi împărate,\naruncă-mi mărunțiș!\nTe rog să râzi de mine,\nnu mă privi pieziș.\nSunt doar un măscărici,\nnu am deci nici o vină\nși tot ceea ce spun\ntu știi că-i doar o glumă."},{"title":"Mă rog","body":"Mă rog.\nȘi nu m-am mai rugat așa.\nDoamne,\ndacă mă auzi\nrogu-te, nu mă lăsa.\nE ipocrit,\nși mai afurisit\ndin partea mea\ndecât necredința lui Toma.\nDecât trădarea lui Iuda.\nSă-ți cer, Doamne,\ndoar atât te deranjez\ncrucea e grea...\nși te-aș ruga,\nslăvite Tată,\nși doar un gram s-o ușurezi.\nMă frâng și mă frământ sub ea,\nnici Sisif împingând la deal\nnu-i chinuit în așa hal,\ncum mă chinui eu\ncu crucea mea.\ncrucea e grea,\ncrucea e grea,\ncrucea e grea.\nDe ce-i a mea?"},{"title":"Am venit Pessoa","body":"Am venit Pessoa și am plecat Picasso"},{"title":"Sacrosanct","body":"Sacrosanct.\nCu ochii roșii,\nplânși martiric,\nprivesc cu jind\niconostasul-\ncum Maica-și ține\nla sân Fiul;\nși cu ecou aud\nvozglasul.\nDar o fi preotul\nce cântă\nori aud cetele cerești?\ncăci mii de glasuri\nse îngână,\nși par că-s glasuri\nîngerești.\nPrivesc în sus,\nînspre cupolă,\ncătre Hristos Pantocrator\nDar și-a luat ochii de la mine;\na amuțit sfântul sobor.\nIar sub genunchii-mi chinuiți,\nși-nflăcărați de pietate,\nInfernul însuși s-a deschis.\n\"Lasciate ogni speranza, voi ch'entrate.\""},{"title":"Dacă ți-aș da iubirea mea","body":"Dacă ți-aș da\niubirea mea\npentru\nnimic,\nci doar așa,\nca să o ai,\nte-ai întoarce înapoi\nsă mi-o redai?\nSau egoist\nși mai hapsân\nai da-o altcuiva\nfără să-ți pese\nde goliciunea mea?\nDacă ca Oedip\nmi-aș scoate ochii\ndar ți i-aș pune-n\npalmă,\noare ți-aș fi mai dragă?\nSau excentric din fire\ni-ai luat fără răgaz\npentru a ta iubire?\n\nDacă ți-aș fi\njumătatea\nși mitul androginului ar\nexista\nm-ai iubi doar pe mine?\nSau oare m-ai tăia\nfără regrete\nși-apoi ți-ai face singur\nun alt\nsuflet pereche?"},{"title":"Tronuri","body":"Confiteor Deo\nOmnipotenti\nBeatae Mariae\nSemper Virgini\nBeato Michaeli archangelo\nSanctis apostolis\nOmnibus sanctis.\n\nRegret.\nMai încape mult regret în mine?\nNu cred...\nPrin răni deschise, purulente,\ncurg în șiroaie remușcări și regrete.\nAți smuls din mine\nși ficatul și splina\nși chirurgical mi-ați extras inima.\nAm încasat atâtea lovituri\nși imploram să nu mai dați\nc-am și eu suflet\nși mă doare\ndar voi nu mă ascultați.\n\nȘi mi-am întors fața către Tatăl\nși m-am rugat\ncum nici Arhanghelii din ceruri\nnu ar fi cutezat.\nMi-am întors fața către Tatăl\nși-am urlat:\nDoamne, auzi strigătul meu disperat.\n\nRex tremendae majestatis,\nQui salvandos salvas gratis,\nSalve me, fons pietatis."},{"title":"Simbioză","body":"Simbioză.\nAm stări febrile\ncând\nte văd.\nEști atât de\nfrumos...\nUn vis lucid\nîntors pe dos.\nEști zburător?\nOri un luceafăr\nprintre stele?\nȘi eu nebună,\nte caut printre ele...\nAș vrea să ne\nunim,\nunul să\ndevenim.\nSă nu fiu eu,\nsă nu fii tu.\nSă fim unul mereu\nîntr-un\nmultivers\nperpetuu.\nSimbioză.\nCu tine ies din abioză."},{"title":"Maledicție","body":"Maledicție.\nSă nu poți scrie niciun vers\nși pururi să te chinui.\nSă scrii doar rânduri fără sens,\ncuvântul să nu-l birui.\nSă fii hulit și clevetit\nși veșnic luat peste picior.\nSă nu poți scrie mai nimic,\ncând scrii, să te cuprindă un fior.\nSă nu ai inspirație și apetență\nși să îți simți sufletul gol.\nSă vrei să scrii cu ardență,\ndar să scrii prost și frivol.\nExcommunicatio major."},{"title":"Nu știu să mă exprim","body":"Nu știu să mă exprim în cuvinte.\nNu am scris niciodată romane,\nnu am pus cuvinte pe hârtie\nși de aceea nu știu cum să exprim\nce-aș vrea să-ți spun eu ție.\n\nNu știu să mă exprim în cuvinte.\nNu am scris niciodată poezie,\nnu mă pricep la versuri sau la rime\nși de aceea nu știu cum să exprim\nce simt eu pentru tine.\n\nNu știu să mă exprim în cuvinte.\nNu am scris niciodată vreo scrisoare,\nnu știu să fac declarații sau să mărturisesc\nși de aceea nu știu cum să exprim\ncă te iubesc."},{"title":"Bacchanal","body":"Călăuzit de Procyon\nși înzestrat de muze\ndau sens cuvintelor\nce-mi freamătă pe buze.\nȘi Bacchanal voi face\nce-i închinat lui Baccus\ncăci latent în mine zace\nun har precum păcatul.\nChinuitor, pizmaș și crunt\ntot răscolește-n mine\nca moartea într-un muribund\nînzestrările-mi divine.\nCând cugetărilor dau glas\nși mă declar Augur,\nsunt luat, legat și pe rug ars\nca un păgân nebun.\nDar eu sunt vocea zeilor,\nsunt ecou de titan,\nsunt tatăl ideilor,\nsunt profet d'antan."},{"title":"Fhyfv7ty","body":"Agonie.\nNici Prometeu\ncu ficatul fărâmițe\nbrutal consumat\nnu trece prin atâtea suferințe\ncâte am eu de înfruntat.\nMă pierd și mă regăsesc\nîn aceeași gaură de șarpe\ndin care ies în fiecare zi\nși cad iar în fiecare noapte.\nȘi ca Icar,\nnebun și maniac,\naș fi sperat\nsă pun mâna pe soare.\nDar deschid ochii, plâng turbat\niar cad și mă înec în mare.\nRuinele a ce am fost\nse tot dărâmă zi de zi,\nun Colosseum tenebros\nridicat din frustrări și gelozii.\nAm înțeles așa de greu\nce simțea Persefona\nde ce-n Infern plângea mereu\ncând Hades o iubea.\nHomer scria...\n\nNu, stai.\nMă dor plămânii de la plâns\nși capul de la gânduri\nși nu știu dacă am mai spus\ndar d-asta mai scriu rânduri.\nȘi ca s-ascund că am frustrări,\ncă mă urăsc pe mine\nfac rime proaste și postări\nca să pară că-s bine.\nDar noapte când mă pun în pat\ndin nou mă pun pe plâns\niar zbier și urlu și mă zbat\ncă nu sunt de ajuns.\nȘi se adună-n mine ura,\nrâvna, scârba și mâhnirea\nși nu că vreau, dar numai pentru\ncă nu cunosc iubirea."},{"title":"8gyt57d5f58","body":"Nu știu câtă\nură\nmai încape în mine.\nNu știu dacă-i normal\nsă am frustrări maligne.\nNu știu cum\nși în ce fel\nsă mă deschid\nîn fața ta\ndoar pentru\nnevoia\nde a-mi valida suferința.\nNu știu ce înseamnă să fii bun.\nȘi-am întrebat,\ndar n-am primit răspuns\ndin rugăciuni.\nȘi când mă uit în jur\nși văd\natâta ură necontrolată,\nagresivitatea nefondată,\nciudă generalizată,\nmă întreb:\na fost cineva bun vreodată?\nE clar că\nfiecare cară propria povară.\nSă fie o\nmadea generațională?\nO boală\nfatală."},{"title":"Anatemă","body":"Afurisit să-ți fie numele în veci.\nSă crape buzele care-l rostesc.\nȘi oricine îl poartă să nu mai aibă tihnă.\nȘi oricine-l cunoaște să nu aibă odihnă.\n\nNenorocit să fii de-a pururi.\nSă nu-ți poți da iubirea nimănui.\nȘi nimeni să nu îți dea iubire.\nTot ce cunoști să fie doar ură și mâhnire.\n\nSă suferi iar și iar etern.\nSă-ți fie fiecare zi ca în Infern.\nSă ți se pârjolească inima-n dureri\nȘi să renunți la tot. Să nu mai știi să speri.\n\nÎmi doresc...\nNu.\nÎți doresc\nsă ai parte doar de\nChinuri, disperare,\nstrofocări și întristare,\nghinion, boli, nedreptate\nși infecții și chiar moarte.\n\nȘi o viață lungă, ca să treci prin toate."},{"title":"Să fie o chestiune biblică","body":"Să fie o chestiune biblică\nsă lupți la infinit?\nȘi dacă chiar aș fi arhanghel,\nde ce nu am aripi?\nMă simt deseori, privind spre cer,\nca un albatros rănit.\nOare așa și Lucifer s-o fi simțit?\n\nSă fie o chestiune biblică\nsă treci prin ploi și foc?\nȘi dacă îmi car și eu crucea,\nsunt oare prooroc?\nMă simt deseori, când n-am pe nimeni,\nmizerabil și trist.\nOare asta înseamnă să fii evanghelist?\n\nSă fie o chestiune biblică\nsă îți dorești mai mult?\nȘi dacă obțin ce vreau,\nînseamnă că-s preasfânt?\nMă simt deseori, când am tot ce-mi doresc,\nde parcă nu sunt Eu.\nÎnseamnă asta oare, că aș fi Dumnezeu?"},{"title":"M-a scos un gagiu","body":"M-a scos un\ngagiu\nla Kayus\nși mi-a recomandat\nescargot.\nI-am spus că nu-mi prea place,\nchiar dacă eu\nîn general\nmănânc ghiare de găină\nsau picioare de porc.\nMi-am luat un\nrooibos\nfără zahăr,\ndietetic,\nchiar dacă zilnic beau\ncafea la ibric.\nVedeam de pe terasă\nautobuzele care\nlasă\nplebea în Livadă.\nEl m-a adus cu\nG class\nși nu îmi pasă\ncă în rest\nmerg cu șasele\nacasă."},{"title":"Confesiuni","body":"Întotdeauna am fost copilul care\nla orice aniversare\nplângea puțin cam tare.\nAtunci nu știam\ndar cred că o făceam\npentru validare.\nCând am crescut mai mare\nprin clasele primare\nnu vorbeam cu nimeni niciodată\ncăci consideram că sunt eu mai deșteaptă.\nTot în clasele primare\njucam adevăr sau provocare\nși am fost provocată să\nîmi iau geanta și să plec acasă.\nAm făcut-o bucuroasă,\ncredeam doar că-s prea smart ca să fiu înțeleasă\nde copiii din clasă.\nPe la 12 ani am început să fac poezie\nși credeam că mi se cuvine doar mie\nsă pun cuvinte-n rime pe hârtie.\nO prostie. Fierbeam de gelozie.\nPrin liceu mi-am dat seama\ncă nu-s cea mai frumoasă,\ncă-s cam grasă\nși nici foarte prietenoasă.\n\nȘi atunci am decis\nsă vorbesc mai deschis,\nsă evit profele\nși să merg la cafele,\nsă nu mai fac poezie\npentru că e o prostie,\nsă fiu mai gălăgioasă\nși neserioasă\nca să ascund frica de a fi iar singură\nși cât sunt de nesigură.\nCând am început facultatea\nam cunoscut iar singurătatea,\nm-a cuprins iar insecuritatea\nși am început din nou să scriu.\nDar acum știu,\ncă sunt atât de mulți mai buni ca mine.\nȘi-mi pare bine.\nÎmi place asta.\nChiar mă distrez că ne mai ciondămin\npe insta."},{"title":"Confesiuni 2","body":"Bună, sunt Oana, mama îmi spune și Cristina\nȘi pe la 8 ani susțineam sus și tare\ncă am puteri paranormale,\ncă eu controlez și vânt și soare,\ncă Dumnezeu îmi vorbește\nși că vorbesc și eu proorocește,\ncă sunt un fel de Hristos\npuțin mai frumos.\nȘi pe la 12 ani eram convinsă\ncă Slenderman există\nși așteptam cu nerăbdare\nziua în care\nmă va lua și mă va face slujitoare.\nȘi îmi imaginam\ncă o să ajung ca Jeff the Killer\ncă vor face despre mine un thriller\nși mă gândeam ce frumos va fi\ncând voi ucide alți copii.\nNu-i așa că-i amuzant?\nDa, e și ciudat.\nCred că voiam atenție de fapt.\nȘi încă o fac :)"},{"title":"Când te îneci","body":"Când te îneci\ncel mai îngrozitor\nE că nu aude nimeni\ncum strigi după ajutor.\nȘi partea cea mai rea\ne că te chinui să nu mori\nîn timp ce te zbați și implori\nsă te ajute cineva.\nPoate că asta îmi e soarta\nsă fiu aruncată în ocean\nca Hephaestus de Hera\ncăci s-a născut prea uman.\nCare e meteahna mea?\ncă nu-s cum oamenii ar vrea?\noricât aș încerca\nnu pot mulțumi pe toată lumea."},{"title":"Despre frică sau cum mă simt eu într-o joi la 13","body":"Un pumn în stomac și un nod în gât.\nMi-e foame dar nu pot să mănânc.\nO mână care îmi apasă pe trahee.\nNu pot să respir, încep să plâng,\nîngrozitoare odisee.\nPupile dilatate și privire pierdută.\nMigrenă și dureri de burtă.\nDe mai mult stres să mă ferească Dumnezeu,\ncă de anxietate stau juma' de zi doar pe veceu.\nTrebuie să fac ceva, dar nu pot muta o ață.\nStau, mă uit la pereți și mă simt paralizată.\nHiperventilez, amețesc și nu mai văd clar.\nE joi la ora 13:42.\nIadul meu personal.\nÎncep să mă închin. Un început de delir.\nTatăl nostru care ești în ceruri\ncare ești în...\ncare...\nTatăl nostru,\nTatăl nostru,\nMă auzi?\nDe ce nu îmi răspunzi?\nNu îți sunt oare și eu fiică?\nNu vezi oare că mi-e frică?\nȘi adorm fără să știu. Și visez cum vreau să fiu."},{"title":"Nu am multe regrete","body":"Nu am multe regrete în viață\n    dar regret\n        în fiecare dimineață\n            că aștept.\nAștept momentul potrivit\n    să ies din zona de confort\n        să spun ce simt\n            să văd cât pot.\nDar nu pot aștepta așa\n    nu mai pot procrastina\n        în speranța\n            că le voi rezolva eu cumva.\nTrebuie să rezolv acum\n    să nu mă mai complac\n        să-mi fac un drum\n            pe care să pot să calc.\nSă calc și să nu cad în gol\n    și să mă gândesc ce bine-mi șade\n        căzând așa domol\n            că doar Dumnezeu alege cine cade."},{"title":"A fost odată","body":"A fost odată ca niciodată\nBa nu, a fost\nCândva, nu\nDemult\nEra odată o\nFată.\nGândea prea mult și visa la\nHimere și alte cele\nIar și iar la nesfârșit.\nJelea moartea inspirației și zicea ceva de\nKatabasis și decădere?\nLuați aminte,\nMai degrabă s-ar spune că era\nNebună.\nOh, nebun e un cuvânt mare\nPentru cine știe că se poate scrie poezie fără\n(Quite)\nRime.\nSingură\nȘi fără să știe care e viitorul poeziei\nTăcea și scria și\nȚinea morțiș să scrie ceva\nUnic.\nVocifera doar când era vorba de\nWilliam Shakespeare și poezia secolului al\nXIX-lea.\nYou know what they say\nZâmbește și scrie mai departe."},{"title":"Sunt în autobuz","body":"Sunt în autobuz.\nȘi un copil zbiară și se zbate\nîn brațele maică-sii,\ndar mă uit la chipul lui mai bine\nși mă văd\npe mine.\nEu ca un nou-născut.\nPe 23 noiembrie 2004\nm-am născut la Spitalul Municipal Onești.\nNingea\nși mami spune că bătea\nclopotul de ora 12\ncând am ieșit din ea.\nCe anecdotic să mă nasc așa.\nCopilul încă urlă și plânge\nși zice: \"Mami vreau bomboane!\" și\n\"Mami vreau pufarine!\" și\n\"Mami...?\nvreau să te uiți la mine.\nSunt consecința propriilor tale acțiuni, mami.\nPentru că am fost velcro baby\nși tu ai fost părinte elicopter și\nmă întreb ce vede fetița din tine\ncând te uiți la mine.\n\nSunt ca păpușa aia mâzgălită pe față\nși cu părul tăiat\npe care ai regretat\ncă ai stricat-o?\"\nSuspină cu sughițuri ăla mic\nși mă-sa-i spune:\n\"Hai să-ți dea mama pupic.\"\nPe la 10 ani, mami\nmi-ai zis\ncă probabil cu Eminescu m-ai făcut\nși poate nu ți-ai dat seama,\ndar de atunci am știut\ncă scrisul meu va trebui să aibă impactul\npe care scrisul lui l-a avut în trecut.\nMama și-a luat copilul în brațe și au coborât\nîn Gemenii.\nEu mai am 3 stații\nși vreau să o sun pe mami.\n\"La examen a fost bine,\nda, am mâncat cu fetele\ncând ajung la apartament trebuie să mai citesc.\nBine, pa, love you.\"\nCă nu putem spune niciuna \"Te iubesc.\""},{"title":"23nx72uv","body":"Waisted potential.\nI ask myself:\n\"Could I be any better\nIn other dimension?\"\nI pass the mirror\nAnd I can't\nWatch my own reflection.\nWasted potential.\nI don't even know where am I going\nOr what's the right direction.\nI take my pills,\nI sip my drink,\nBut I can't break the tension.\nWasted potential.\nI crave to be someone,\nI crave to do something,\nIt's a sick obsession.\nWasted potential.\nIf I,\nCan't bring anything meaningful to humanity\nWhy would I struggle to keep living?\nIf I,\nCan't create something new, a transcending creation\nThen it's just...\nWasted potential."},{"title":"3kf97ch","body":"Să vă amintiți de mine.\nCând vă veți simți stingheri\nÎn încăperi prea pline.\nSă vă amintiți de mine.\nCând veți plânge ore-n șir\nDin motive infime.\nSă vă amintiți de mine.\nCând orice-ați încerca\nNu vă veți simți bine.\n\nSau nu...\n\nSă vă amintiți de mine\nAtunci când veți citi\nPoezii și romane.\nSă vă amintiți de mine\nÎn zilele ploioase,\nNu în cele senine.\nSă vă amintiți de mine\nAtunci când auziți\nCele mai proaste glume.\nSă vă amintiți de mine\nCa de o poveste\nȘi nu un simplu nume."},{"title":"K39cg","body":"Când eram mică\nÎmi era frică\nDe întuneric.\nȘi nu am avut pe nimeni care\nSă mă pupe pe frunte\nÎnainte de culcare.\nMereu mi-a lipsit o\nFigură protectoare.\nȘi poate de asta acum\nAm daddy issues\nȘi caut în fiecare bărbat\nCeea ce nu am avut.\nPoate de asta acum\nAm age regression\nȘi noaptea când\nMă pun la somn\nÎncă țin în brațe un pluș.\nCând eram mică\nEram fericită\n\n[REDACTED]\n\nmă iubea."},{"title":"N-am știut niciodată","body":"N-am știut niciodată ce-nseamnă să iubești.\nSă fie doar iubirea ce o știm din povești?\nNu cred...\nPentru că mă uit la tine\nși simt ceva ce n-a mai simțit nimeni.\nSimt...\nCum poți să explici ceva\ncând nimeni nu a mai simțit așa\nși\nnu există cuvinte pentru asta?\nMă simt ca o eclipsă de Soare\ncând Luna pare că-l cuprinde, dar sunt la mile depărtare.\nMă simt ca Orfeu când mai avea\nun pas până să iasă din Infern cu Euridice.\nMă simt ca Iisus Hristos pe cruce,\ncă din infinită iubire a ales să se sacrifice.\nTe iubesc sincer și curat\npentru că m-ai învățat să simt.\nTe iubesc pur și devotat,\npentru că lângă tine uit de timp.\nTe iubesc zelos și necondiționat,\npentru că din nou sper.\nTe iubesc simplu și dezinteresat,\npentru că știu că-i efemer."},{"title":"Jhjhztuw46escuo","body":"Aș vrea să știu mai puțin\nca să nu mai gândesc așa mult.\nAș vrea să nu mai am gânduri care mă țin\ntrează\nși nu mă lasă să mă culc.\nAș vrea\nca lumea mea\nsă se învârtă în jurul a ceva\nbanal\nși nu în jurul a ce voia să spună\nStendhal.\nAș vrea să nu-l înțeleg pe\nDescartes\nși să nu-l fi citit niciodată.\nAș vrea ca gândirea mea\nsă nu fi fost schimbată\nde Kierkegaard\nși filosofie consacrată.\nAș vrea să uit de Camus și că am citit\ncă trebuie să mi-l imaginez pe Sisif fericit.\nAș vrea să nu mai știu\nși să nu mai fiu conștientă\ncă suntem într-o stare permanentă de\nmoarte latentă\ncă poate așa m-aș bucura de\nviață sau\nnaiba știe ce."},{"title":"~","body":"Nu scriu pentru oamenii\ncare sunt încă vii\nîn viața mea.\nȘi de aceea\nn-am vrut să-ți scriu ție\no poezie.\nDar nu mă pot abține.\nȚi-am spus poate prea des\ncă te iubesc.\nȘi acum mă gândesc,\ndes,\ndacă-ți lipsesc.\nSună prostesc?\nHai\nsă ieșim p-afară.\nHai\nsă ne luăm de la Star\ncâte-o cafea amară.\nHai să ne plimbăm\ncu mașina ta,\nsă ascultăm muzica mea,\nsă mergem în locul ăla\nde care știm doar noi\nși poate aducem ce a fost între noi doi\nînapoi."},{"title":"Aripi de ceară","body":"Mă acoperă cu aripi de ceară\nSe topesc cum lacrimile curg\nE zidul arzător ce mă separă\nDe către demonii care distrug.\n\nDar odată ce aripile i se topesc\nMă va înconjura cu mâinile\nÎmbrățișarea vie pe care o doresc.\nAtât de apropiați, ne vom citi gândurile.\n\nDoar un înger din praf de stele\nÎl venerez;e zeul meu\nApare adesea luminat în visele mele\nÎl voi avea în suflet tablou mereu.\n\nMărul discordiei a fost mușcat\nE imposibil să nu fie un lucru efemer\nIubirea sinceră a unui suflet pătat\nIubesc un înger nemuritor din cer."},{"title":"Artista","body":"Simt cum cad tot mai adânc în abis\nMorbid\nMă pierd și mă regăsesc în aceeași gaură de vierme\nInsuportabilă\nGrotească cazarmă a singurătății\nrăzboiului în care mă găsesc.\nToți soldații sunt morți\nEu i-am asasinat, fără grabă\nȘi acum mă lupt cu nimeni alta\nCu subsemnata, artista.\nÎncearcă să controleze teritoriul\nAcesta ar fi mintea mea\n\"Ciudat\", îmi zic\n\"Ciudat\"\nDacă artista scrie poeme\nIar eu o țin departe\nCine sunt eu, scriind acest poem?\nMă lupt cu mine însămi?\nOri cu societatea?\nCu copleșitorul vacarm\nSau cu singurătatea?"},{"title":"Copilul mort","body":"Am plâns privind copilul mort\nAvea privirea înghețată,\nZâmbet rece\nȘi fața vânătă de frig\nDar nu plângea\nDeșii fulgii de nea\nDin cei doi ochi de sticlă\nScăpătau.\n\nAm plâns ținând în palme mâna lui\nUșoară, rece, aspră\nCe nu se mișca\nȘi nu o atingea\nPe-a mea.\n\nAm plâns sărutându-i buzele crăpate\nReci și amare, murdare de sânge\nDar încă tremurânde.\n\nMi-am luat rămas bun\nAșa cum se cuvine\nDe la copilul stins demult\nSpărgând oglinda veche\nBlocând în ea pe veci\nCopilul ce am fost."},{"title":"Dansul Iubirii (Ciornă)","body":"Dansând pe marginea prăpastiei\nValsul morții și al dragostei\nCădere în abisul infernului\nRidicat de aripile îngerului\nDans în aer printre stele\nIubire în grădina Eden.\n\nSunt aceia Adam și Eva?\nDar oare mai sunt și alți îndrăgostiți?\nMai știe cineva ce e iubirea?\nSau ce ar însemna iubiți?\n\nSe așteaptă în ceasul din urmă minuni\nSă se danseze cu persoana iubită\nTrist că în pașii de dans se spun minciuni\nNu mai este iubire, este ispită."},{"title":"Fantasma din zăpadă","body":"Pășeam prin zăpada imaculată\nCând din senin, cam de odată\nO siluetă întunecată\nMi-a intrat în cale.\n\nAvea ochii sticloși, ai zice de mărgăritar\nȘi m-a privit cu o adâncă ură\nM-am simțit brusc vinovat ca o priveam\nAceasta creatură, de o asemenea natură.\n\nViscolul s-a întețit, mă alunga departe\nFantasma nici că dispărea\nTrezea în mine cugetări deșarte\nCe nu aveau să fie nicicând fapte.\n\nO limbă ce nu mi-a fost dat să o cunosc\nMurmura un cântec vechi de dor\nȘi nu intelegeam cuvintele\nNici nu găseam o tălmăcire-a lor\nDar era așa de mlădios și acoperit de jale\nEra sunetul furtunii\nAcoperit de viscol, era o oarecare încântare.\n\nVijelii ce ridicau omătul spre înaltul cerului\nMă împingeau spre obscura fantasma\nCrivățul mă trăgea deoparte\nO tresarire, o presimțire poate\nMa îndemnat să plec deodat' departe.\n\nAlea iacta est, nu am urmat nici o suflare\nNu am urmat vijelia,\nNici crivățului nu am dat ascultare\nCrispată, fantasma mă privea\nȘi trupul său cel zvelt în umbre dispărea.\n\nFugind ca disperat, m-am prins de brațul ei\nȘi ceva din privirea înghețată ce mi-a dat-o\nMa făcut să înțeleg, ca era acolo pentru mine\nIar eu am alungat-o.\n\nFiința efemeră, ma lăsat pustiu\nCăci stau în intuneric și intuneric sunt\nOmătu-i rece, dureros, dar găsesc alinare\nIn această poveste, nu-s eu fantasma oare?"},{"title":"Galbenul de septembrie","body":"Și dintre toate culorile aprinse\nMă înec în galbenul de septembrie\nÎn adierile răcoroase și fine\nCe aduc parfumul anilor trecuți.\n\nȘi dintre toți anii trecuți\nÎmi amintesc de toamna lui '98\nDe serile pierdute-n Cișmigiu\nCe-mi răscoleau emoțiile.\n\nȘi dintre toate emoțiile\nAleg iubirea pură și vibrantă\nÎntâia dragoste copilărească\nPrima despărțire brutală.\n\nȘi dintre toate despărțirile\nCea mai dureroasă a fost ultima\nCând vântul ce adia rece și fin\nLua cu sine parfumul tău amețitor."},{"title":"Gândesc fantasmagoric","body":"Gândesc fantasmagoric\nȘi sunetul înfundat al clopotelor\nce bat\n12 pm să anunțe\nMă induc în visare\nȘi ce lume utopică văd.\n\nErau oameni\nOh! Oamenii! Oamenii!\nAlergau ca apucați, toți îmbrăcați la fel\nCu pelerina galbenă și servieta transparentă\nAlergau și călcau direct în bălți, desculți\nCu zâmbete nebune petrecute pe chip.\n\nȘi eu eram nebunul\nCăci în mulțimea de capete galbene si fericite\nEu eram suflet pierdut;\nDegeaba aveau cu toții zâmbete nebune\nEu fiind singur, ud, fără de zâmbet\nIeșeam din normalitatea utopista a lumii perpetue-\ndin visul meu identificat ca și coșmar\nȘi m-am trezit când clopotul mic,\nAnunță cu sunet sec\nOra 5."},{"title":"Icar","body":"De ce ți-ai făcut aripi de ceară, Icar?\nTu nu știai oare că mori?\nTe-ai bucurat tu oare doar\nc-ai reușit să zbori?\n\nProbabil că te-ai visat Zeu.\nAi visat că poți zbura,\ndar vezi tu, dragul meu...\nZborul ți-a adus pieirea.\n\nAripile se capătă, să știi,\nși nu le poți avea tu pe nedrept\n\"Ce-au făcut Zeii\", te-ntrebi\nS-au născut fără defect.\n\nTu, om hain, nebun cu firea\nÎndrăgostit nebun de viață\nChiar ai crezut că poți fi Zeu?\nÎn suflet ai avut speranță?\n\nIcar, tu nu ești Zeu,\nnu ai fost niciodată.\nEști doar un simplu muritor\nCe a avut speranță."},{"title":"În umbre mă pierd","body":"În umbre mă pierd total paradoxal\nÎn neguri mă descopăr într-un final\nSa-mi spună cineva de ce nu vad culorile\nDe ce vad negru când privesc trist zorile.\n\nGăsesc alinare în dulcele negru-ndoliat\nCoșmaru-n care sufăr pare-adevarat\nRătăcesc pe căi pustii fără a știi a iubi\nCăutând defapt a iubi a-mi aminti.\n\nSunt în contradicție cu mine însumi\nCăci neștiutor caut răspunsuri\nO fantomă moartă ce vie nu a fost\nÎn van spun că în sumbritate eu ma bucur\nLumina vreau să o cunosc, să uit trecutul.\n\nCe trecut e de uitat când nu a existat?\nSunt o ființă translucidă\nStând pe Ceres privesc soarele aici uitat\nUitat-am și eu să fiu viu și inima-mi\nmurindă.\n\nTotuși amintiri răzlețe imi dau fiori\nParcă din altă viață de-aș avea\nPriveam pierdut cumva printre nori\nDe unde știu eu ce sunt aceia?\n\nDe unde știu că unul sunt?\nȘi dacă nu aș fi, al cui e acest gând?\nNu cunosc nimic și tot mi-e cunoscut\nEu sunt nimeni și totuși sunt mai mult."},{"title":"Lacul Pădurii de Argint","body":"Lacul Pădurii de Argint e înghețat\nDar încă îmi pot zări portretul\nUn anonim, singur și trist, poetul\nCe-și privește chipul încruntat.\n\n\"Ce am ajuns, ce am ajuns?\"\nÎngână fața oglindită\n\"Un vis\", șoptește parcă neclintită\n\"Un vis piedut în timpul scurs.\"\n\nE frig, o pot simți în piele\nDar mai înghețat mi-e sufletul\nCu-n strat de gheață fin, dar dur\nȘi-am lacrimi înghețate precum stele.\n\n\"Ce-mi încălzește inima?\"\nDar cine să-mi răspundă?\nȘi totuși se aude o voce plăpândă\n\"Poezia este alinarea mea.\""},{"title":"Lilith (Ciornă)","body":"Oh, cum atragi tu suflete\nTu ispită pentru sinele interior\nPătezi conștiința cu dorință și dor\nOferi falsă iubire pentru adevărate scâncete.\n\nTu prinzi în dansul minciunii\nOrice ființă, orice suflare\nSpre tine, cu flăcări în ochi si-n plină turbare\nSuflete vin să danseze sub clarul lunii.\n\nÎn mijloc de noapte albă ca perla\nFugi, zâmbind tu hoață de iubire\nSufletul rupt face trupul să uite să respire\nAi omorât furând de la o viață dragostea."},{"title":"Păcatele","body":"Iartă-mă părinte, pentru că am păcătuit!\nNu mă uit în ochii domniei tale, căci mi-e rușine\nAm făcut păcate, din cele mai murdare\nȘi mă căiesc.\n\nAm lăsat prea puține păcate negustate!\nAm blestemat...\nAm râvnit la boul vecinului\nL-am furat și mâncat.\nE un păcat de moarte\nUnul din cele șapte\nȘi mă căiesc.\n\nPoate sângele mielului să imi spele păcatul?\nMă mândresc...\nÎmi curge fala prin vene\nMă văd deasupra lumii\nE un păcat de moarte\nUnul din cele șapte\nși mă căiesc.\n\nNu mă cunosc, părinte, nu mă iubesc!\nUrăsc...\nDisprețuiesc aproapele\nNu ajut săracii ori bolnavii\nE un păcat de moarte\nUnul din cele șapte\nȘi mă căiesc.\n\nExistă păcat ce nu poate fi iertat?\nLenevesc...\nPășesc în biserică doar căutând iertare\nȘi fără să vreau nu aduc slavă Domnului\nE un păcat de moarte\nUnu din cele șapte\nȘi mă căiesc.\n\nMă simt prizonieră, în lumea asta a noastră!\nSunt avară...\nAdun banii și-i ascund\nȘi nu dau din puținul meu și altuia\nE un păcat de moarte\nUnul din cele șapte\nȘi mă căiesc.\n\nNu am vrut, părinte, să ajung așa!\nSunt desfrânată...\nÎmi hrănesc inima cu frumuseți străine\nSi am iubit oameni, mai mult decât pe Domnul\nE un păcat de moarte\nUnul din cele șapte\nȘi mă căiesc.\n\nCaut împăcare, părinte! Caut fericirea!\nSunt mânioasă...\nRăzbunarea mi-e armă\nUrlu, lovesc și denigrez pe cel ce m-a mâniat\nE un păcat de moarte\nUnul din cele șapte\nȘi mă căiesc.\n\nPărinte, te rog, iartă-mă!\nRoagă-te pentru sufletul meu murdar!\nAm lăsat vorbele șarpelui mișel în mintea mea\nRegret părinte!\nSă audă îngerii, serafimii și cei mai sus de ei!\nCaut iertare!\nSunt pierdută, părinte!\nAm alunecat în întuneric, dar mă căiesc."},{"title":"Păpuși de porțelan","body":"Păpuși de porțelan, toate de calitate\nCele cu ochii azurii în stânga\nCele în rochii de mătase ocupă centrul\nIar în dreapta sunt cele cu păr auriu\nDar cele deformate?\nCele cu o mână lipsă ori mai scunde\nCele defecte din fabricație, cele hâde\nUnde trebuie puse?\nPatronul fabricii râde, ținând în mâna-i mare\nO păpușă mică, cu trunchiul deformat\nUnde trebuie puse? Hazlie întrebare!\nCele nereușite, nu-și au un loc anume\nCi vor fi zdrobite, fără de răgaz\nIar din rămășițe, vom reface păpușa\nAșa cum trebuie să fie ori și care.\nDe nu e cu putință, se înțelege dară\nCă materialul, e unul prost făcut\nE o ieftinătură și trebuie să dispară\nCăci un rezultat prost, nu este unul vrut.\nPăpușa cu-n defect, oricât de mic îți pare\nNu este apreciată și trebuie ascunsă\nDe nu o poți ascunde, defectul e prea mare\nȘi creația hâdă, trebuie distrusă."},{"title":"Ploua","body":"Ploua.\nPicuri se izbeau violent de pământ\nSe prelingeau prin părul încâlcit\nMascau lacrimile oricum uscate de vânt\nLacrimi ce anunță teama de sfârșit.\nSteaguri roșii, pătate cu sânge de erou\nErau plecate la pământ, plângând\nÎși plângeau luptătorii, ce au pierit demn\nVise deșarte, cu dorință apărând.\nLuptând pentru viață mea, doar una am,\nMi-am amintit de mama si de sfaturile sale\nEram un copil ce spera,vise și dorinte-aveam\nAcum lupt pentru viață, dar de fapt vreau onoare.\nPoate aș ajunge doar un nume pe o piatră funerară\nAmintit ca un soldat viteaz și demn\nCe a murit doar pentru dragostea de țară\nAșa cum ar fi scris pe cruce, pe o tăbliță de lemn."},{"title":"Regina Lumii","body":"Regele stelelor, o tu rege,\nRidică-mă din infern\nTimpul e înghețat si rece\nSalvum me din frigul etern.\n\nZamolxis suprem tată\nSalvează a ta fată\nScoate-mă din umbră\nDu-ma la Geea maica blândă.\n\nIlúvatar ceresc creator\nPrivește-mă ridicată din durere\nCăci nu accept să mor\nSi iată eu nu voi avea cădere.\n\nElfii să se plece înaintea mea\nSemizeii plângă, căci Zeus a căzut\nPandora însăși mi-a oferit cutia sa\nCe am deschis-o in Olimpul acum mut.\n\nAm distrus Olimpul\nAm fărâmat Andromeda\nAm doborât Edenul\nȘi Iadu-n care-a zăcut Eva.\n\nInlănțuită ca si Cronos\nAdânc jos în Tartar\nV-am folosit pe toți\nMi-ați facut și altar.\n\nAm baut sângele elfului nemuritor\nI-am folosit mintea zeului murdar\nCu aripi de Pheonix m-am ridicat in zbor\nAm folosit timpul lui Cronos, ce l-am primit in dar.\n\nDeus e doar nume\nUitat de timp si soartă\nPuterea e la mine\nLumea e destramata.\n\nVoi recrea eu Iurra\nCaci l-am distrus zâmbind\nVoi reface natura\nZeii doar mulțumind.\n\nPuterea supremă o am in mana\nSteaua Polaris în a mea cunună\nElfii si nimfele ma numesc stăpână\nSunt Regina de sub clar de lună.\n\nIn abis Ilúvatar, Cronos si Zeus\nPuterea si-o adună,\nZamolxis, Geea si Uranus\nCu toții împreună\nEi vin sa ma doboare\nSă refaca pamantul\nRegina Lumii moare\nÎn slavă-ncepe cântul.\n\nPuterile-adunate\nDe elfi de zei de zane\nCrează ce-i aparte\nUn nou rege în lume.\nDios născut doar din putere\nVa guverna-ntreg timpul\nVa scoate Terra din durere\nȘi va crea iubitul.\n\nRegină moartă a durerii\nPrivesc schimbarea lumii\nDin lumea învierii\n\"Nimic\" îl numesc unii.\n\nVoi dainui aici\nSi voi privi discret\nVoi oferi lumii frici\nTot voi distruge încet.\n\nSub tot binele vieții\nE o pată de rău\nȘi stiu ei zeii bieții\nCa tot răul sunt eu."},{"title":"Seară de August","body":"Ne-am cunoscut într-o seară de August\nDoamne, cât de frumoasă putea fi\nParcă o văd și acum, în fața mea,\nÎn rochia neagră, zâmbind blajin.\n\nNe-am cunoscut înainte de apus,\nEu doar un copil, ea deja femeie,\nAm privit căderea soarelui,\nAm vorbit despre semnificația vieții.\n\nNe-am cunoscut înainte de a ne naște,\nȘi când ne-am văzut n-am știut că o cunosc\nEa m-a recunoscut, abia acum realizez\nDar eram doar un copil, de ce nu a mărturisit?\n\nAcum e iar în fața mea, avem aceeași vârstă\nE neschimbată, poate puțin mai palidă,\nDar e tot ea, dar sunt tot eu,\nSuntem ambele personalități ale unei minți.\n\nÎmpărțim în egală măsură controlul acum,\nȘi ne jucăm mereu în mintea asta asa naivă.\nUite acum, uite păpușa, face ce îi comandăm,\nAțele sunt aproape rupte, dar face tot ce vrem.\n\nAcum râde, ba nu, plânge, e confuză\nAcum își sfâșie pielea, acum caută bandaje\nAcum urlă, acum tace, adoarme iar și iar\nPăpușica noastră încearcă în zadar să scape."},{"title":"Sentimente puternice","body":"Sentimente puternice\nAr fi regret? Dar ar fi ură?\nAr fi atingerea vântului fin de iunie\nCe ne îmbrățișează distant.\n\nIar pe marginea lacului netulburat\nNe bucurăm de lunga noastră plimbare\nAcompaniați de serenadele întunericului.\n\nNoaptea obișnuia să mă sperie\nDar privindu-ții ochii luminoși\nCalea mea este clară\nIar scopul neclintit.\n\nObscuritatea te-amuțește mi se pare\nCăci țipetele zilei trecute\nSunt înlocuite de șoapte drăgăstoase.\n\nNe dezîndragostim\nDar în umbra nopții ne iubim\nSă fim noi oare\nAmorezii prinși\nÎn jocul de șah\nAl nebuniei?"},{"title":"Spitalul 9","body":"Sorb cu poftă din paharul vieții\nLicoarea aromată cu sânge și venin\nStând pe tronul meu de oase\nÎnțeleptul mag îmi spune ce să fac.\n\nVocea-i mieroasă șoptește amețitoare\nȘi cuvintele-i alese m-amețesc\nZâmbesc când îi aud ideile mărețe\nÎn care eu sunt stăpânul gândurilor.\n\n\"În clopotniță poate\", sugerează gânditor\nIar planul genial nou născocit îmi place\nCăci e dovada, dovada vie\nDovada că sunt biruitorul imposibilului.\n\nNu știu cum am urcat-dar entuziasmat\nPriveam de sus mulțimea de supuși\nCe șoc celest îi va cuprinde când vor vedea\nVor vedea cum mă înalț în zbor ca îngerii.\n\nPășesc în gol, mândru de puterea mea\nDar mă cuprinde spaima, căci cerurile se ridică\nIar slujitorii mă privesc acum înspăimântați\nDar pot auzi râsul drăcesc al magului trufaș.\n\n\"Era internat de zece luni, se agrava\"\nDeclară medicul de gardă de la Spitalul 9\n\"A sărit în gol de la etajul 4, a murit\"\nȘah mat pentru regele nebunilor."},{"title":"Sunt normal","body":"Soarele își izbeste razele de fereastra îngustă\nlumina-i augustă mă-ndeamnă la păcat\ncă nu-s bogat și duhu'-i sărac\nși nu mă complac, displac,\nsă trăiesc în sărăcia lucie, intelectuală.\nNu că ar fi prima oară, prima clipă amară.\nBunăoară,\nintelectul m-a-nșelat, repetat\nStângaci, crezându-mă deștept,\ndar sunt infect, imperfect\nCe defect!\nnu are geniul meu nici-un efect.\nE în van, mortuar, a-nțelege că-s mirean,\nchiar uman,\nprea banal.\nSunt normal."},{"title":"Tot ce ador","body":"Tot ce ador\nSă simt, să mor\nDispare-ncet\nÎn pași de menuet\nSau dispar eu\nȘi nu mai simt\nȘi trec prin timp\nȘi reînviu\nȘi retrăiesc\nȘi reapar\nCu chip amar\nÎn mintea ta\nȘi în ființă\nȘi-n credință\nCa dorință.\n\nCum te ador\nTe adoram\nȘi tot te voi\nPrinși între lumi\nSuntem doar noi\nFiințe vii\nCu inimi moi."},{"title":"Utopia","body":"E perfect, în Utopia\nAtât de perfect, încât e anormal\nȘi în dorința de a simti normalitate\nObservi ca perfecțiunea e o minciună.\n\nE liniște în Utopia\nAtât de silențios, încât nici vântul nu bate\nȘi aceasta din cauză că țipetele cele mari\nSunt în minte locuitorilor amuțiți.\n\nE veselie, în Utopia\nAtâta veselie, încât locuitorii zâmbesc într-una\nȘi asta deoarece plâng noaptea\nAscunși în pătura de întuneric.\n\nUtopia nu e nimic altceva decât o minciună\nAtât de falsă încât o complacem și trăim în ea\nUtopia e în fiecare cămin al lumii\nȘi așteaptă să fie demascată."},{"title":"vulgar. (Ciornă)","body":"văd dorința în privire\nvăd pofta feroce din ochii muritorilor\nvăd gelozia din ochii pandorei\ncând zâmbesc zeflemitor.\n\nsunt o zeiță\ncreată de mâinile afroditei și sabia lui ares\nsunt cel mai letal păcat\nma numesc vulgaritate.\n\nsunt iubirea violentă\nobsesia nebunilor îndrăgostiți de viață\nsunt junghiul din inimă\ncare sucește mințile.\n\nsunt soră cu eros și agape\ndar am în mine venin, ură și mândrie\niubesc și violent și blând\napoi ucid."}]</script>
 <script>
 const cv=document.getElementById("c"),mctx=cv.getContext("2d"),rc=document.getElementById("r"),rctx=rc.getContext("2d"),dcv=document.getElementById("d"),dctx=dcv.getContext("2d"),scene=document.getElementById("scene");
 let ctx=mctx; // swapped to the rain / deer layer while the camera scene runs
@@ -107,7 +153,11 @@ function glyphs(si){
    // first "o": its column span from the text metrics, its rows from the mask (used by the hidden deer)
    const ox=((cols/2+dx)/X-tot/2)*X,ow=octx.measureText("o").width*X;let r0=-1,r1=-1;
    for(let r=0;r<rows;r++)for(let c=Math.max(0,Math.floor(ox));c<=Math.min(cols-1,Math.ceil(ox+ow));c++)if(mask[r*cols+c]>.15){if(r0<0)r0=r;r1=r}
-   oBox=r0<0?null:{x0:ox*cell,x1:(ox+ow)*cell,y0:r0*ch,y1:(r1+1)*ch}}catch(e){dot={x:cols/2*cell,y:rows/2*ch}}
+   oBox=r0<0?null:{x0:ox*cell,x1:(ox+ow)*cell,y0:r0*ch,y1:(r1+1)*ch};
+   // second "a" (4th letter): same way, used by the poems
+   const ax=ox+octx.measureText("oan").width*X,aw=octx.measureText("a").width*X;let q0=-1,q1=-1;
+   for(let r=0;r<rows;r++)for(let c=Math.max(0,Math.floor(ax));c<=Math.min(cols-1,Math.ceil(ax+aw));c++)if(mask[r*cols+c]>.15){if(q0<0)q0=r;q1=r}
+   aBox=q0<0?null:{x0:ax*cell,x1:(ax+aw)*cell,y0:q0*ch,y1:(q1+1)*ch}}catch(e){dot={x:cols/2*cell,y:rows/2*ch}}
   edge=new Uint8Array(cols*rows);
   for(let r=1;r<rows-1;r++)for(let c=1;c<cols-1;c++){const i=r*cols+c;if(mask[i]>.15&&(mask[i-1]<.15||mask[i+1]<.15||mask[i-cols]<.15||mask[i+cols]<.15))edge[i]=1}
 }
@@ -379,7 +429,7 @@ const DEER=[
 "     .                    ,eo*#*  .`...                    `."
 ];
 const DRAMP=" .`',:;~-=+*ixoe#%@",DLH=1.12,DFONT="ui-monospace,Menlo,Consolas,monospace";
-let deer={pts:null,taps:[]},dz=null,oBox=null,wordBot=0;
+let deer={pts:null,taps:[]},dz=null,oBox=null,aBox=null,wordBot=0;
 // split the art into characters once: brightness, ears, eyes, and random timings for assembling / dissolving
 function deerPrep(){
   const DC=Math.max.apply(null,DEER.map(l=>l.length)),DR=DEER.length,P=[];
@@ -425,7 +475,9 @@ function drawAura(L,age,now,fade,th){
   dctx.font=L.fs+"px "+DFONT;
 }
 // first "o": hit test in screen space, undoing the tilt shear the letters are drawn with
-function onFirstO(x,y){
+function onFirstO(x,y){return onBox(oBox,x,y)}
+function onSecondA(x,y){return onBox(aBox,x,y)}
+function onBox(oBox,x,y){
   if(!oBox)return false;
   const r=(y-tiltY*ch*.8)/ch,x2=x-tiltX*cell*2.2-(r-rows/2)*tiltX*cell*.2,y2=y-tiltY*ch*.8,pad=Math.max(10,cell*1.5);
   return x2>=oBox.x0-pad&&x2<=oBox.x1+pad&&y2>=oBox.y0-pad&&y2<=oBox.y1+pad;
@@ -585,7 +637,7 @@ function drawRain(adv,mul,over){
     const len=d.len+(rainBoost*14|0);
     for(let j=0;j<len;j++){
       const rr=Math.floor(d.y)-j;if(rr<0||rr>=rows)continue;
-      if(!over&&mask[rr*cols+c]>.15)continue;
+      if(!over&&!hideWord&&mask[rr*cols+c]>.15)continue;
       const z=dz&&!over?dz[rr*cols+c]:0;if(z===1)continue;
       let f=1-j/len;const th=themeAt(c,rr),hb=z===2?2.2:1;
       if(rainOcc&&rainOcc.w>0&&over&&ctx===rctx){const sx=(c*cell-W/2)*rainOcc.s+W/2+rainOcc.tx,sy=(rr*ch-H/2)*rainOcc.s+H/2,gc=Math.floor(sx/cell),gr=Math.floor(sy/ch);
@@ -601,7 +653,7 @@ let stars=null;
 function drawStars(mul){
   if(!stars||stars.cols!==cols||stars.rows!==rows){const n=Math.max(20,cols*rows/260|0);stars={cols:cols,rows:rows,a:Array.from({length:n},()=>({c:Math.random()*cols|0,r:Math.random()*rows|0,p:Math.random()*6.28,sp:.012+Math.random()*.03,ch:"+*.:'`"[Math.random()*6|0]}))}}
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
-  for(const q of stars.a){const v=Math.sin(t*q.sp+q.p);if(v<.55)continue;if(mask[q.r*cols+q.c]>.15&&mul===1&&cam.st==="off")continue;if(dz&&dz[q.r*cols+q.c]===1)continue;
+  for(const q of stars.a){const v=Math.sin(t*q.sp+q.p);if(v<.55)continue;if(!hideWord&&mask[q.r*cols+q.c]>.15&&mul===1&&cam.st==="off")continue;if(dz&&dz[q.r*cols+q.c]===1)continue;
     const th=themeAt(q.c,q.r);ctx.fillStyle=`hsl(${th.rh} ${th.s?70:0}% 85% / ${(v-.55)*.9*mul})`;ctx.fillText(q.ch,q.c*cell,q.r*ch)}
 }
 // a soft trail of characters behind the finger or cursor
@@ -618,7 +670,7 @@ function frame(){
   if(!motionLive){tgtX=px>-900?clamp((px/W-.5)*2,-1,1):0;tgtY=py>-900?clamp((py/H-.5)*2,-1,1):0}
   tiltX+=(tgtX-tiltX)*.08;tiltY+=(tgtY-tiltY)*.08;
   if(RM){shake=0;flash=Math.min(flash,.06);invert=0}
-  if(cam.st==="off"&&t-lastInput>60*25&&(t-lastInput)%(60*12)===0){fire(Math.random()*W,Math.random()*H,true)}
+  if(cam.st==="off"&&pv.st==="off"&&t-lastInput>60*25&&(t-lastInput)%(60*12)===0){fire(Math.random()*W,Math.random()*H,true)}
   const camOn=camStep();
   ctx=mctx;ctx.setTransform(dpr,0,0,dpr,0,0);
   if(camOn){flash=0;invert=0;shake=0;ctx.clearRect(0,0,W,H)}
@@ -639,13 +691,13 @@ function frame(){
   if(camOn){ // rain + stars on their own slower layer
     ctx=rctx;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle="#060608";ctx.fillRect(0,0,W,H);
     drawRain(true,1,true);drawStars(1);ctx=mctx;ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
-  }else{drawRain(true,1,false);drawStars(1)}
+  }else{drawRain(true,pv.st==="off"?1:.8,false);drawStars(1)}
   // soft glow of the word shape underneath, makes it readable
-  try{ctx.globalAlpha=.9;ctx.drawImage(back,tiltX*cell*2.2,tiltY*ch*.8,W,H);ctx.globalAlpha=1}catch(e){}
+  if(!hideWord)try{ctx.globalAlpha=.9;ctx.drawImage(back,tiltX*cell*2.2,tiltY*ch*.8,W,H);ctx.globalAlpha=1}catch(e){}
   // ---- letters + background ----
   for(let r=0;r<rows&&!(camOn&&cam.textA<.01);r++){
     for(let c=0;c<cols;c++){
-      const i=r*cols+c,m=mask[i];
+      const i=r*cols+c,m=hideWord?0:mask[i];
       if(dz&&dz[i]===1)continue;
       // wave rings (apply to all cells)
       let ring=0;
@@ -720,6 +772,7 @@ function frame(){
       if(!b.thin&&Math.random()<.4){ctx.fillText(sym,p[0]+cell,p[1]);ctx.fillText(sym,p[0]-cell,p[1])}}
     ctx.shadowBlur=0;
   }
+  try{drawDust()}catch(e){}
   // ---- particles ----
   if(camOn){ctx=dctx;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);try{drawCamDeer()}catch(e){}
     ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top"}
@@ -752,16 +805,19 @@ function finale(x,y){
     SFX.explode();SFX.colors();noise(1.2,.35,150,1000,0,"lowpass",.7);buzz([40,30,80,30,140,30,220])}catch(e){}
 }
 addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;lastInput=t;
-  const onO=cam.st==="off"&&!face.on&&onFirstO(e.clientX,e.clientY);
-  fire(e.clientX,e.clientY,false,onO);
+  if(pv.st!=="off"){clearTimeout(hold);hold=null;return}   // the poems view handles its own taps
+  const onO=cam.st==="off"&&!face.on&&onFirstO(e.clientX,e.clientY),onA=!onO&&cam.st==="off"&&!face.on&&onSecondA(e.clientX,e.clientY);
+  fire(e.clientX,e.clientY,false,onO||onA);
   if(onO){try{deerTap()}catch(err){}}
+  if(onA){try{aTap()}catch(err){}}
   hx=px;hy=py;clearTimeout(hold);hold=null;
-  if(!onO&&cam.st==="off")hold=setTimeout(()=>{if(cam.st==="off")finale(hx,hy);hold=null},700)});
+  if(!onO&&!onA&&cam.st==="off")hold=setTimeout(()=>{if(cam.st==="off"&&pv.st==="off")finale(hx,hy);hold=null},700)});
 addEventListener("pointerup",()=>{clearTimeout(hold);hold=null});
 addEventListener("pointercancel",()=>{clearTimeout(hold);hold=null});
 addEventListener("pointerleave",()=>{px=py=-999});
 addEventListener("keydown",e=>{if(e.repeat||e.metaKey||e.ctrlKey)return;lastInput=t;
   if(e.key==="m"||e.key==="M"){muted=!muted;return}
+  if(pv.st!=="off"){if(e.key==="Escape")exitPoems();return}
   fire(Math.random()*W,Math.random()*H)});
 let _w=0,_h=0;
 function fit(){const vv=window.visualViewport,w=Math.round(vv?vv.width:innerWidth),h=Math.round(Math.max(vv?vv.height:0,innerHeight));
@@ -770,7 +826,217 @@ addEventListener("resize",fit);addEventListener("orientationchange",()=>setTimeo
 if(window.visualViewport)visualViewport.addEventListener("resize",fit);
 setInterval(fit,400);
 addEventListener("scroll",()=>scrollTo(0,0));
-build();_w=Math.round(window.visualViewport?visualViewport.width:innerWidth);_h=Math.round(Math.max(window.visualViewport?visualViewport.height:0,innerHeight));requestAnimationFrame(loop);
+// ---------- poems: three quick taps on the second "a" and the word dissolves into characters that settle into Oana's poems ----------
+// (an accordion inside its own scroll container; the rain keeps falling behind it; position and open poem are remembered)
+const POEMS=JSON.parse(document.getElementById("poems-data").textContent);
+const PKEY="oana.zip:poems";                 // localStorage: {v,view:"poems"|"home",open,anchor:{i,f},top,at}
+const BODY_STY=[0,1,2,7,4,5,6,7,8];         // poem body family per home font: Courier New -> Menlo (too thin and wide for long text)
+const pvEl=document.getElementById("pv"),pvS=document.getElementById("pvs"),pvList=document.getElementById("pvlist");
+let pv={st:"off"},hideWord=false,dust=[],aTaps=[],pvBuilt=false,pvOpen=-1,pvTok=0,pvHue=0,pvLastFx="",pvSaveT=null,labelTaps=[];
+const PFX=["rise","scramble","margin","tint","rain","ring"];
+function pvLoad(){try{const s=JSON.parse(localStorage.getItem(PKEY)||"null");return s&&s.v===1?s:null}catch(e){return null}}
+function pvStore(o){try{localStorage.setItem(PKEY,JSON.stringify(o))}catch(e){}}
+function pvItems(){return pvList.children}
+// where we are: the first poem row crossing the top of the readable area, and how far into it (fraction of its height)
+function pvAnchor(){
+  const it=pvItems(),sr=pvS.getBoundingClientRect(),y0=sr.top+Math.min(110,sr.height*.15);
+  for(let i=0;i<it.length;i++){const r=it[i].getBoundingClientRect();if(r.bottom>y0)return {i,f:+clamp((y0-r.top)/Math.max(1,r.height),0,1).toFixed(4)}}
+  return {i:0,f:0};
+}
+function pvSave(view){
+  const old=pvLoad()||{};
+  const o={v:1,view:view||(pv.st==="off"||pv.st==="out"?"home":"poems"),open:pvOpen,anchor:pvBuilt&&!pvEl.hidden?pvAnchor():(old.anchor||{i:0,f:0}),top:pvBuilt&&!pvEl.hidden?Math.round(pvS.scrollTop):(old.top||0),at:Date.now()};
+  pvStore(o);
+}
+function pvSaveSoon(){if(pvSaveT)return;pvSaveT=setTimeout(()=>{pvSaveT=null;if(pv.st==="on")pvSave()},280)}
+function pvBuild(){
+  if(pvBuilt)return;pvBuilt=true;
+  const frag=document.createDocumentFragment();
+  POEMS.forEach((p,i)=>{
+    const it=document.createElement("section");it.className="pm";
+    const b=document.createElement("button");b.className="pt";b.type="button";b.id="pt"+i;b.setAttribute("aria-expanded","false");b.setAttribute("aria-controls","pb"+i);b.setAttribute("aria-label",p.title);b.dataset.i=i;
+    const mk=document.createElement("span");mk.className="mk";mk.setAttribute("aria-hidden","true");mk.textContent="+";
+    const tt=document.createElement("span");tt.className="tt";tt.textContent=p.title;b.append(mk,tt);
+    const w=document.createElement("div");w.className="pw";w.id="pb"+i;w.setAttribute("role","region");w.setAttribute("aria-labelledby","pt"+i);w.hidden=true;
+    const body=document.createElement("div");body.className="pb";body.lang="ro";
+    let st=document.createElement("p");st.className="st";
+    for(const line of p.body.split("\n")){
+      if(line===""){body.append(st);st=document.createElement("p");st.className="st";continue}
+      const l=document.createElement("span");l.className="l";l.textContent=line;st.append(l)}
+    body.append(st);w.append(body);it.append(b,w);frag.append(it)});
+  pvList.append(frag);
+  pvList.addEventListener("click",e=>{const b=e.target.closest(".pt");if(!b||pv.st!=="on")return;pvToggle(+b.dataset.i,true,e.clientX,e.clientY)});
+  pvList.addEventListener("keydown",e=>{const b=e.target.closest(".pt");if(!b)return;const all=[...pvList.querySelectorAll(".pt")],k=all.indexOf(b);let n=-1;
+    if(e.key==="ArrowDown")n=Math.min(all.length-1,k+1);else if(e.key==="ArrowUp")n=Math.max(0,k-1);else if(e.key==="Home")n=0;else if(e.key==="End")n=all.length-1;
+    if(n>=0){e.preventDefault();all[n].focus({preventScroll:true});all[n].scrollIntoView({block:"nearest",behavior:RM?"auto":"smooth"})}});
+  pvS.addEventListener("scroll",pvSaveSoon,{passive:true});
+  pvEl.querySelector(".pvback").addEventListener("click",()=>exitPoems());
+  pvEl.querySelector(".pvlabel").addEventListener("click",()=>{const now=performance.now();labelTaps=labelTaps.filter(s=>now-s<2200);labelTaps.push(now);
+    const r=pvEl.querySelector(".pvlabel").getBoundingClientRect();pvSparks(r.left+r.width/2,r.top+r.height/2,8);
+    if(labelTaps.length>=3){labelTaps=[];exitPoems()}});
+}
+function pvTheme(){const th=THEMES[cur];pvEl.style.setProperty("--h",String(Math.round((th.h+pvHue+360)%360)));pvEl.style.setProperty("--s",th.s+"%")}
+function pvFont(si){
+  const S=STY[si],B=STY[BODY_STY[si]];
+  pvEl.style.setProperty("--tf",S[1]);pvEl.style.setProperty("--tw",S[0]==="300"?"400":S[0]);pvEl.style.setProperty("--tst",S[2]||"normal");
+  pvEl.style.setProperty("--bf",B[1]);pvEl.style.setProperty("--bk",/monospace/.test(B[1])?".96":"1");
+}
+// the home font switch, done from the poems: next random font, word glyphs rebuilt for later, small rgb glitch on the column
+function pvSwitchFont(){
+  let n2;do{n2=Math.random()*STY.length|0}while(n2===sty);sty=n2;fontIn=3+(Math.random()*3|0);
+  try{glyphs(sty);drips=[]}catch(e){}
+  pvFont(sty);if(!RM){pvEl.classList.remove("gl");void pvEl.offsetWidth;pvEl.classList.add("gl");setTimeout(()=>pvEl.classList.remove("gl"),320)}
+}
+function pvSparks(x,y,n,up){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=.4+Math.random()*1.8;
+  parts.push({x:x+(Math.random()-.5)*8,y:y+(Math.random()-.5)*6,vx:Math.cos(a)*s,vy:up?-(.5+Math.random()*1.4):Math.sin(a)*s,g:up?-.006:.02,life:26+Math.random()*30,max:56,ch:rj(),hue:Math.random()})}}
+// letters scramble and resolve (in) or scramble away (out), characters only; widths can change so the row height is pinned meanwhile
+function scramble(el,dur,mode){
+  const txt=el._txt||(el._txt=el.textContent),n=txt.length,T0=performance.now(),tok=(el._sc=(el._sc||0)+1),rk=Array.from({length:n},()=>Math.random());
+  const row=el.closest(".pt");if(row)row.style.minHeight=row.getBoundingClientRect().height+"px";
+  const fin=()=>{el.textContent=txt;if(row)row.style.minHeight=""};
+  if(RM&&mode==="in"){fin();return}
+  (function st(now){if(el._sc!==tok)return;const u=clamp((now-T0)/dur,0,1);let s="";
+    for(let k=0;k<n;k++){const c=txt[k];if(c===" "){s+=" ";continue}
+      const on=mode==="in"?u>=(k/n)*.65+rk[k]*.35:u<rk[k]*.8;s+=on?c:JUNK[(Math.random()*JUNK.length)|0]}
+    el.textContent=s;if(u<1)requestAnimationFrame(st);else if(mode==="in")fin()})(T0);
+}
+// accordion: single open; the collapsing and expanding rows animate together and the tapped title stays still on screen
+function pvToggle(i,user,cx,cy){
+  const it=pvItems(),btn=it[i].querySelector(".pt"),next=pvOpen===i?-1:i,a0=btn.getBoundingClientRect().top;
+  if(user&&next>=0){pvSwitchFont();pvSparks(btn.querySelector(".mk").getBoundingClientRect().left+4,a0+btn.getBoundingClientRect().height/2,10)}
+  // the font change reflows everything: put the tapped title back where it was before anything is painted
+  {const d=btn.getBoundingClientRect().top-a0;if(Math.abs(d)>.5)pvS.scrollTop+=d}
+  const dur=RM?120:420,tok=++pvTok,st=[];
+  for(let k=0;k<it.length;k++){const w=it[k].querySelector(".pw"),want=k===next;
+    if(!(want||!w.hidden))continue;
+    const h0=w.hidden?0:w.getBoundingClientRect().height;w.hidden=false;w.style.height="";const h1=want?w.getBoundingClientRect().height:0;w.style.height=h0+"px";
+    it[k].classList.toggle("open",want);it[k].querySelector(".pt").setAttribute("aria-expanded",String(want));it[k].querySelector(".mk").textContent=want?"-":"+";
+    st.push({w,h0,h1,want})}
+  pvOpen=next;const T0=performance.now(),a1=btn.getBoundingClientRect().top;
+  if(user&&next>=0)pvFlourish(i,btn);
+  (function step(now){if(tok!==pvTok)return;const u=clamp((now-T0)/dur,0,1),e=eio(u);
+    for(const s of st)s.w.style.height=(s.h0+(s.h1-s.h0)*e).toFixed(1)+"px";
+    const d=btn.getBoundingClientRect().top-a1;if(Math.abs(d)>.5)pvS.scrollTop+=d;
+    if(u<1){requestAnimationFrame(step);return}
+    for(const s of st){s.w.style.height="";if(!s.want)s.w.hidden=true}
+    if(next>=0&&user){const sr=pvS.getBoundingClientRect(),r=btn.getBoundingClientRect();   // opened low on the screen: glide it up a bit
+      if(r.top>sr.top+sr.height*.58)pvS.scrollBy({top:r.top-(sr.top+sr.height*.2),behavior:RM?"auto":"smooth"})}
+    pvSave()})(T0);
+  if(!user)return;
+  pvSave();
+}
+// a small random thing each time a poem opens (never the same twice in a row)
+function pvFlourish(i,btn){
+  let f;do{f=PFX[Math.random()*PFX.length|0]}while(f===pvLastFx);pvLastFx=f;pv.lastFx=f;
+  const r=btn.querySelector(".tt").getBoundingClientRect();
+  if(f==="rise"){for(let k=0;k<26;k++){parts.push({x:r.left+Math.random()*r.width,y:r.top+r.height*(.3+Math.random()*.5),vx:(Math.random()-.5)*.5,vy:-(.5+Math.random()*1.3),g:-.004,life:50+Math.random()*50,max:100,ch:rj(),hue:Math.random()})}}
+  else if(f==="scramble"){scramble(btn.querySelector(".tt"),560,"in")}
+  else if(f==="margin"){const w=pvItems()[i].querySelector(".pw").getBoundingClientRect(),sr=pvS.getBoundingClientRect(),y0=Math.max(r.bottom,sr.top+60),y1=Math.min(y0+Math.max(120,w.height),sr.bottom-60),cr=pvEl.querySelector(".col").getBoundingClientRect();
+    for(let k=0;k<16;k++){const left=k%2===0,x=left?cr.left+Math.max(4,parseFloat(getComputedStyle(pvEl.querySelector(".col")).paddingLeft)*.35):cr.right-Math.max(8,parseFloat(getComputedStyle(pvEl.querySelector(".col")).paddingRight)*.5);
+      parts.push({x:x+(Math.random()-.5)*6,y:y0+Math.random()*Math.max(10,y1-y0),vx:0,vy:-.08-Math.random()*.15,g:0,life:40+Math.random()*80,max:120,ch:"+*.'`:"[Math.random()*6|0],hue:Math.random()})}}
+  else if(f==="tint"){pvHue=(pvHue+(Math.random()<.5?-1:1)*(18+Math.random()*22))%360;pvTheme()}
+  else if(f==="rain"){rainBoost=Math.max(rainBoost,.55)}
+  else if(f==="ring"){waves.push({x:clamp((r.left+12)/cell|0,0,cols-1),y:clamp((r.top+r.height/2)/ch|0,0,rows-1),t0:t})}
+}
+// screen positions of the characters you can see in the poems view (where the particles settle, or leave from)
+function pvGlyphs(max){
+  const out=[],sr=pvS.getBoundingClientRect(),y0=sr.top+40,y1=sr.bottom-50,rg=document.createRange();
+  const els=[pvEl.querySelector(".pvlabel"),...pvList.querySelectorAll(".pm .tt"),...(pvOpen>=0?pvItems()[pvOpen].querySelectorAll(".l"):[])];
+  for(const el of els){
+    const r=el.getBoundingClientRect();if(r.bottom<y0-40||r.top>y1)continue;
+    const node=el.firstChild;if(!node||node.nodeType!==3)continue;const s=node.data;
+    for(let k=0;k<s.length&&out.length<max;k++){if(s[k]===" ")continue;rg.setStart(node,k);rg.setEnd(node,k+1);const q=rg.getBoundingClientRect();
+      if(q.width>0&&q.bottom>y0-40&&q.top<y1)out.push({x:q.left,y:q.top+q.height*.12,s:q.height*.78,c:s[k]})}
+    if(out.length>=max)break}
+  return out;
+}
+function wordGlyphs(max){
+  const all=[];for(let i=0;i<mask.length;i++)if(mask[i]>.15)all.push(i);
+  for(let k=all.length-1;k>0;k--){const j=Math.random()*(k+1)|0;const q=all[k];all[k]=all[j];all[j]=q}
+  return all.slice(0,max).map(i=>{const r=i/cols|0,c=i%cols;return {x:c*cell+tiltX*cell*2.2+(r-rows/2)*tiltX*cell*.2,y:r*ch+tiltY*ch*.8,s:cell*1.45,c:chars[i]===" "?"#":chars[i]}});
+}
+function mkDust(src,tg,n){
+  const out=[];if(!src.length||!tg.length)return out;
+  for(let k=0;k<n;k++){const a=src[k%src.length],b=tg[k%tg.length],an=Math.random()*6.2832,d=30+Math.random()*120;
+    out.push({sx:a.x,sy:a.y,ss:a.s,sc:a.c,vx:Math.cos(an)*d,vy:Math.sin(an)*d*.6-30-Math.random()*50,tx:b.x+(k>=tg.length?(Math.random()-.5)*20:0),ty:b.y,ts:b.s,tc:b.c,d:Math.random(),sw:(Math.random()-.5)*60,hue:Math.random(),extra:k>=tg.length})}
+  return out;
+}
+function enterPoems(how){
+  if(pv.st!=="off"||cam.st!=="off"||face.on)return;
+  pvBuild();pvFont(sty);pvTheme();
+  for(const el of [pvEl.querySelector(".pvlabel"),...pvList.querySelectorAll(".tt")])if(el._txt){el._sc=(el._sc||0)+1;el.textContent=el._txt}
+  clearTimeout(hold);hold=null;flash=0;invert=0;shake=0;bolts=[];
+  pvEl.hidden=false;pvEl.inert=false;pvEl.classList.remove("on");
+  // restore the saved open poem and position before measuring
+  const s=pvLoad();pvRestore(s);
+  const tg=pvGlyphs(340),src=how==="reveal"?tg.map(()=>({x:Math.random()*W,y:-20-Math.random()*H*.4,s:cell*1.45,c:rj()})):wordGlyphs(340);
+  dust=mkDust(src,tg,Math.min(340,Math.max(tg.length,how==="reveal"?tg.length:Math.min(340,src.length))));
+  const k=RM?.4:1;
+  pv={st:"in",how,t0:performance.now(),A:(how==="reveal"?380:620)*k,B:640*k,Dd:260*k,showAt:(how==="reveal"?820:1150)*k,end:(how==="reveal"?1200:1560)*k};
+  hideWord=true;if(how!=="reveal")glitch=Math.max(glitch,8);
+  try{unlockAudio();bell(PENTA[5],.0,.08,1.4);bell(PENTA[8],.25,.05,1.6)}catch(e){}
+  pvSave("poems");
+}
+function pvShow(){
+  pvEl.classList.add("on");
+  const sr=pvS.getBoundingClientRect();
+  for(const el of [pvEl.querySelector(".pvlabel"),...pvList.querySelectorAll(".tt")]){const r=el.getBoundingClientRect();if(r.bottom>sr.top&&r.top<sr.bottom)scramble(el,520,"in")}
+}
+function pvRestore(s){
+  const it=pvItems();
+  for(let k=0;k<it.length;k++){const want=!!s&&s.open===k,w=it[k].querySelector(".pw");w.hidden=!want;w.style.height="";it[k].classList.toggle("open",want);
+    it[k].querySelector(".pt").setAttribute("aria-expanded",String(want));it[k].querySelector(".mk").textContent=want?"-":"+"}
+  pvOpen=s&&s.open>=0&&s.open<it.length?s.open:-1;
+  if(!s){pvS.scrollTop=0;return}
+  const a=s.anchor;
+  if(a&&a.i>=0&&a.i<it.length){const sr=pvS.getBoundingClientRect(),r=it[a.i].getBoundingClientRect(),y0=Math.min(110,sr.height*.15);
+    pvS.scrollTop=Math.max(0,pvS.scrollTop+(r.top-sr.top)+a.f*r.height-y0)}
+  else pvS.scrollTop=s.top||0;
+}
+function exitPoems(){
+  if(pv.st!=="on")return;
+  pvSave("home");
+  const src=pvGlyphs(340),tg=wordGlyphs(340);
+  for(const el of [pvEl.querySelector(".pvlabel"),...pvList.querySelectorAll(".tt")])scramble(el,300,"out");
+  pvEl.classList.remove("on");
+  dust=mkDust(src.length?src:tg,tg,Math.min(340,Math.max(src.length,200)));
+  const k=RM?.4:1;
+  pv={st:"out",t0:performance.now(),A:520*k,B:640*k,Dd:240*k,homeAt:1180*k,end:1480*k};
+  try{if(document.activeElement&&pvEl.contains(document.activeElement))document.activeElement.blur()}catch(e){}
+  try{bell(PENTA[3],0,.07,1.4)}catch(e){}
+}
+function aTap(){
+  const now=performance.now();aTaps=aTaps.filter(s=>now-s<2200);aTaps.push(now);
+  if(aTaps.length<3||cam.st!=="off"||face.on||pv.st!=="off")return;
+  aTaps=[];deer.taps=[];enterPoems("dissolve");
+}
+// particles of the dissolve, drawn on the word layer behind the poems text
+function drawDust(){
+  if(pv.st!=="in"&&pv.st!=="out")return;
+  const now=performance.now(),age=now-pv.t0,th=THEMES[cur];
+  if(pv.st==="in"&&!pv.shown&&age>=pv.showAt){pv.shown=true;pvShow()}
+  if(pv.st==="out"&&!pv.home&&age>=pv.homeAt){pv.home=true;hideWord=false;pvEl.hidden=true;pvEl.inert=true;reboots.push({x:cols/2|0,y:rows/2|0,t0:t-60})}
+  if(age>=pv.end){if(pv.st==="in")pv={st:"on"};else{pv={st:"off"};pvEl.hidden=true;pvEl.inert=true;hideWord=false}dust=[];return}
+  const fadeAt=pv.st==="in"?pv.showAt:pv.homeAt,fade=1-clamp((age-fadeAt)/(pv.end-fadeAt),0,1);
+  ctx.textBaseline="top";let lastF="";
+  for(const p of dust){
+    const ua=clamp(age/pv.A,0,1),ea=1-Math.pow(1-ua,3);
+    let x=p.sx+p.vx*ea,y=p.sy+p.vy*ea;
+    const ub=clamp((age-pv.A*.7-p.d*pv.Dd)/pv.B,0,1),eb=eio(ub),sw=Math.sin(ub*Math.PI)*p.sw;
+    x+=(p.tx-x)*eb+sw;y+=(p.ty-y)*eb;
+    const sz=Math.max(4,p.ss+(p.ts-p.ss)*eb),f=Math.round(sz)+"px ui-monospace,Menlo,Consolas,monospace";
+    const chr=ub>.88?p.tc:(ua<.12?p.sc:(Math.random()<.35||!p.cur?(p.cur=rj()):p.cur));
+    let a=Math.min(1,.25+ua*1.2)*fade*(p.extra?1-eb:1);if(a<.01)continue;
+    if(f!==lastF){ctx.font=f;lastF=f}
+    ctx.fillStyle=`hsl(${(th.h+th.a*(p.hue*2-1)+pvHue+360)%360} ${th.s?Math.round(55+40*(1-eb)):0}% ${Math.round(66+20*eb)}% / ${a.toFixed(3)})`;
+    ctx.fillText(chr,x,y);
+  }
+  ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;
+}
+addEventListener("pagehide",()=>{if(pv.st==="on")pvSave()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&pv.st==="on")pvSave()});
+build();try{const s0=pvLoad();if(s0&&s0.view==="poems"){hideWord=true;requestAnimationFrame(()=>enterPoems("reveal"))}}catch(e){}
+_w=Math.round(window.visualViewport?visualViewport.width:innerWidth);_h=Math.round(Math.max(window.visualViewport?visualViewport.height:0,innerHeight));requestAnimationFrame(loop);
 </script>
 </body>
 </html>
