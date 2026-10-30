@@ -1283,10 +1283,11 @@ function pvTapFx(e){
 let pvMC=null;
 function pvFit(i){
   if(i<0||!pvItems()[i])return;
-  const it=pvItems()[i],pb=it.querySelector(".pb"),cs=getComputedStyle(pb),ls=parseFloat(cs.letterSpacing)/parseFloat(cs.fontSize)||0;
+  const it=pvItems()[i],pb=it.querySelector(".pb");pb.style.letterSpacing="";pb.style.fontFamily="";const cs=getComputedStyle(pb);let ls=parseFloat(cs.letterSpacing)/parseFloat(cs.fontSize)||0;
   pvMC=pvMC||document.createElement("canvas").getContext("2d");pvMC.font=`${cs.fontStyle} ${cs.fontWeight} 100px ${cs.fontFamily}`;
-  let mw=0;for(const l of it.querySelectorAll(".l")){const s=l._txt||l.textContent;mw=Math.max(mw,pvMC.measureText(s).width/100+ls*s.length)}
-  const avail=pvList.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-4,mx=W<600?14:16,mn=11;
+  const ls0=it.querySelectorAll(".l"),mwOf=()=>{let m=0;for(const l of ls0){const s=l._txt||l.textContent;m=Math.max(m,pvMC.measureText(s).width/100+ls*s.length)}return m};
+  let mw=mwOf();const avail=pvList.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-4,mx=W<600?14:16;let mn=11;
+  if(mw>0&&avail/mw<mn){if(ls>0){pb.style.letterSpacing="0px";ls=0;mw=mwOf()}if(avail/mw<mn&&/monospace/.test(cs.fontFamily)){pb.style.fontFamily=STY[0][1];pvMC.font=`${cs.fontStyle} ${cs.fontWeight} 100px ${STY[0][1]}`;mw=mwOf()}if(avail/mw<mn)mn=W<600?9.5:10}
   const fs=mw>0?clamp(avail/mw,mn,mx):mx;
   pb.style.fontSize=fs.toFixed(2)+"px";pb.classList.toggle("hs",mw*fs>avail+1);
 }
