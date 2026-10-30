@@ -364,13 +364,13 @@ function animalReact(k){
   try{buzz([12,20,12])}catch(e){}
 }
 // tap thresholds: 10 taps, each within 1.2 s of the previous, bring the eyes; 3 taps within 2 s dismiss them
-const RAPID_TAPS=10,RAPID_GAP=1200,FACE_OFF_TAPS=3,FACE_OFF_WIN=2000;let rapid=[],faceTaps=[];
+const RAPID_TAPS=20,RAPID_GAP=1200,FACE_IN_MS=2600,FACE_OUT_MS=2000,FACE_GUARD_MS=600;let rapid=[],faceTaps=[];
 // the crosshair under a tap: within the reticle's outer ring (at least a 30px radius, so a 60px target), nearest one wins
 function crossAt(x,y){
   if(!xh.length||hideWord||sceneA<.5)return -1;let best=-1,bd=1e9;
   for(const X of xh){const cx=X.cx+tiltX*cell*2.2,cy=X.cy+tiltY*ch*.8,R=Math.max(30,X.r[0]*X.s*1.05),d=Math.hypot(x-cx,y-cy);if(d<=R&&d<bd){bd=d;best=X.k}}
   return best}
-function faceStart(){if(face.on||face.st!=="off")return;face.st="in";face.on=true;face.t0=t;faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
+function faceStart(){if(face.on||face.st!=="off")return;face.st="in";face.on=true;face.t0=performance.now();face.inAge=0;faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
 function build(){
   dpr=Math.min(devicePixelRatio||1,2);
   const vv=window.visualViewport;W=Math.round(vv?vv.width:innerWidth);H=Math.round(Math.max(vv?vv.height:0,innerHeight));
@@ -537,24 +537,22 @@ function faceInit(){const a=new Float32Array(FC*FRn),P=new Array(FC*FRn);
     P[i]={a:an,sx:Math.cos(an)*di,sy:Math.sin(an)*di*.8,ex:Math.cos(an2)*di2,ey:Math.sin(an2)*di2*.8-.15,s:Math.random()*6.28,n:Math.random(),
       d:Math.min(.999,.5*Math.random()+.35*d+.15*(r/(FRn-1))),d2:Math.min(.999,.55*Math.random()+.3*(1-d)+.15*(1-r/(FRn-1)))}}
   face.th=a;face.pt=P}
-// ten quick taps bring the face in (faceStart); a tap on the face or three quick taps dissolve it
-function faceHit(onDot,cx,cy){
-  if(face.st==="hold"&&face.box&&cx>=face.box[0]&&cx<=face.box[2]&&cy>=face.box[1]&&cy<=face.box[3])onDot=true;
-  if(face.st==="in"||face.st==="out")return;
-  if(!onDot){face.cnt=0;return}
-  face.cnt=(face.cnt||0)+1;
-  
-  face.cnt=0;
-  if(face.st==="hold"){face.st="out";face.t0=t;try{buzz([30,40,30,40,30,40,90])}catch(e){}}
-  else{face.st="in";face.on=true;face.t0=t;faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
-}
+// twenty quick taps bring the face in (faceStart); one tap dissolves it (faceOut)
+function faceHit(){face.cnt=0}
+// one tap while the eyes are up (after a short guard during the fade-in) starts the slow diffuse-out, from wherever the fade-in got to
+function faceOut(now){
+  if(!face.on||face.st==="out")return false;
+  const age=now-face.t0;if(face.st==="in"&&age<FACE_GUARD_MS)return false;
+  face.inAge=face.st==="in"?age:FACE_IN_MS;face.st="out";face.t0=now;rapid=[];faceTaps=[];
+  try{buzz([30,40,30,40,90])}catch(e){}return true}
 function drawFace(){
   if(!face.on)return;
   if(!face.pt)faceInit();
-  const age=t-face.t0,IN=300,OUT=210;
+  const now=performance.now(),age=now-face.t0,IN=FACE_IN_MS,OUT=FACE_OUT_MS,ia=face.inAge==null?IN:face.inAge;
   let dim=1,mv=0;
-  if(face.st==="in"){if(age>=IN){face.st="hold";face.t0=t;return}dim=Math.min(1,age/140);mv=1}
-  else if(face.st==="out"){if(age>=OUT){face.on=false;face.st="off";return}dim=age>OUT*.85?Math.max(0,1-(age-OUT*.85)/(OUT*.15)):1;mv=2}
+  if(face.st==="in"){if(age>=IN){face.st="hold";face.t0=now;face.inAge=IN}else{dim=Math.min(1,age/1100);dim=dim*dim*(3-2*dim);mv=1}}
+  else if(face.st==="out"){if(age>=OUT){face.on=false;face.st="off";face.pt=null;rapid=[];faceTaps=[];return}
+    const d0=Math.min(1,ia/1100),q=Math.max(0,Math.min(1,(age-OUT*.45)/(OUT*.55)));dim=(d0*d0*(3-2*d0))*(1-q*q*(3-2*q));mv=2}
   const hold=face.st==="hold",th=THEMES[cur];
   const FFAM="ui-monospace,Menlo,Consolas,monospace";ctx.font="bold 100px "+FFAM;const aw1=ctx.measureText("@").width/100,wide=W>H*1.05,
     fsz=Math.min(W*(wide?.8:.96)/(FC*aw1*1.08),H*(wide?.82:.86)/(FRn*1.25)),pc=aw1*fsz*1.08,pch=fsz*1.25,x0=(W-FC*pc)/2,y0=(H-FRn*pch)/2;
@@ -569,21 +567,25 @@ function drawFace(){
       const ch0=row[c];if(ch0===" ")continue;
       const i=r*FC+c,p=P[i],hx=x0+c*pc,hy=y0+r*pch,v=FR.indexOf(ch0)/15;
       let x=hx,y=hy,al=1,fly=false;
+      // diffuse in: each character drifts softly to its place from a short way off, fading up through random glyphs
+      const inU=a0=>Math.max(0,Math.min(1,(a0-p.d*IN*.6)/(IN*.4))),inPos=u=>{const e=ease(u),k=1-e,sw=Math.sin(u*5+p.s)*k*span*.03;
+        x=hx+(p.sx*span*.28)*k+Math.cos(p.a+1.57)*sw;y=hy+(p.sy*span*.28)*k+Math.sin(p.a+1.57)*sw};
       if(mv===1){
-        const u=Math.max(0,Math.min(1,(age-p.d*IN*.62)/(IN*.38)));
+        const u=inU(age);
         if(u<=0)continue;
-        const e=ease(u),k=1-e,sw=Math.sin(u*9+p.s)*k*span*.07; // slight swirl while flying in
-        x=hx+(p.sx*span)*k+Math.cos(p.a+1.57)*sw;y=hy+(p.sy*span)*k+Math.sin(p.a+1.57)*sw;
-        al=Math.min(1,u*2.2);fly=u<.9;
+        inPos(u);al=u*u*(3-2*u);fly=u<.8;
       }else if(mv===2){
-        const u=Math.max(0,Math.min(1,(age-p.d2*OUT*.55)/(OUT*.45)));
-        if(u>0){const e=u*u,sw=Math.sin(u*7+p.s)*e*span*.06;
-          x=hx+(p.ex*span)*e+Math.cos(p.a+1.57)*sw;y=hy+(p.ey*span)*e+Math.sin(p.a+1.57)*sw;
-          al=Math.max(0,1-u*u*1.1);fly=u>.06;if(al<=0)continue}
+        const u0=inU(ia);if(u0<=0)continue;inPos(u0);al=u0*u0*(3-2*u0);fly=u0<.8;
+        // diffuse out: characters loosen, drift a little and fade, staggered across ~2s
+        const u=Math.max(0,Math.min(1,(age-p.d2*OUT*.5)/(OUT*.5)));
+        if(u>0){const e=u*u,sw=Math.sin(u*5+p.s)*e*span*.03;
+          x+=(p.ex*span*.3)*e+Math.cos(p.a+1.57)*sw;y+=(p.ey*span*.3)*e+Math.sin(p.a+1.57)*sw;
+          al*=Math.max(0,1-u*u);fly=fly||u>.15;if(al<=0)continue}
       }else if(hold&&Math.random()<.004){x+=(Math.random()-.5)*pc*2}
       if(fly){
-        ctx.fillStyle="hsla("+(th.h+40*p.n)+",100%,"+(72+18*p.n)+"%,"+(al*dim)+")";
-        ctx.fillText(Math.random()<.5?rj():ch0,x,y);
+        // soft diffusion: the character's own tone, a little lighter, flickering through a few random glyphs
+        ctx.fillStyle="hsla("+(th.h+(v*30))+","+(th.s?45+v*25:0)+"%,"+Math.min(90,Math.round(34+v*56))+"%,"+(Math.min(1,.35+v*.9)*al*dim*.85)+")";
+        ctx.fillText(Math.random()<.22?rj():ch0,x,y);
       }else{
         const sw=hold?Math.exp(-Math.pow(c+r*.7-((t*.45)%(FC+FRn*.7+60)-20),2)/30):0,shim=hold?(.95+.05*Math.sin(t*.04+c*.35+r*.25)):1,l=Math.min(96,Math.round((22+v*64)*shim+sw*30));
         ctx.fillStyle="hsla("+(th.h+(v*30))+","+(th.s?45+v*25:0)+"%,"+l+"%,"+(Math.min(1,.35+v*.9)*al*dim)+")";
@@ -925,13 +927,9 @@ function finale(x,y){
 addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;lastInput=t;unlockAudio();
   if(pv.st!=="off"){clearTimeout(hold);hold=null;return}   // the poems view handles its own taps
   // taps: the deer's crosshair -> poems; any other crosshair -> a shot (blood, snap, shiver); anywhere else -> the character effects.
-  // ten quick taps anywhere bring the eyes up; while they are up, three quick taps (or a tap on the face) send them away
+  // twenty quick taps anywhere (each within 1.2s) bring the eyes up; while they are up, one tap anywhere sends them away slowly
   const now=performance.now();clearTimeout(hold);hold=null;hx=px;hy=py;
-  if(face.on){
-    fire(e.clientX,e.clientY,false,false);
-    faceTaps=faceTaps.filter(s=>now-s<FACE_OFF_WIN);faceTaps.push(now);
-    if(face.on&&face.st!=="out"&&faceTaps.length>=FACE_OFF_TAPS){faceTaps=[];rapid=[];face.st="out";face.t0=t;try{buzz([30,40,30,40,30,40,90])}catch(err){}}
-    return}
+  if(face.on){try{faceOut(now)}catch(err){}return}   // eyes up: a single tap anywhere starts the slow fade-out; nothing else fires
   const k=crossAt(e.clientX,e.clientY);
   if(k===2){rapid=[];try{shoot(2)}catch(err){}try{enterPoems("dissolve")}catch(err){}return}
   if(k>=0){try{animalReact(k)}catch(err){}}
