@@ -144,7 +144,7 @@ function sceneLayout(){
   if(!tall){s=Math.min(W*.9/IW,H*.86/IH);ox=(W-IW*s)/2;oy=(H-IH*s)/2-H*.05}
   else{const pad=Math.max(12,Math.min(16,W*.035));s=(W-2*pad)/1390;ox=pad-55*s;const band=(892-330)*s;oy=H*.47-band/2-330*s;sy=Math.min(2.4,(oy+330*s-H*.05)/(330*s))}
   const base=oy+IH*s,tr=[];for(let k=0;k<AN;k++)tr.push({s,ox,oy});
-  return {s,ox,oy,tr,tall,bl:(x,y)=>[ox+x*s,y>=330?oy+y*s:oy+330*s-(330-y)*s*sy]};
+  return {s,ox,oy,tr,tall,bl:(x,y)=>[ox+x*s,y>=330?oy+y*s:oy+330*s-(330-y)*s*sy],ib:(X,Y)=>[(X-ox)/s,Y>=oy+330*s?(Y-oy)/s:330-(oy+330*s-Y)/(s*sy)]};
 }
 function sceneBuild(){
   lay=sceneLayout();const s=lay.s;
@@ -246,11 +246,14 @@ function drawBlood(){
   sceneA+=((hideWord?0:1)-sceneA)*(hideWord?.16:.07);
   if(sceneA<.01||!lay)return;
   const s=lay.s,M=RM?.25:1,tx=tiltX*cell*1.2,ty=tiltY*ch*.4;
+  const kS=2.2,cS=2.3;
   for(const b of blood){
+    if(b.vx||b.vy||b.ox||b.oy){b.vx+=(-kS*b.ox-cS*b.vx)*dt;b.vy+=(-kS*b.oy-cS*b.vy)*dt;b.ox+=b.vx*dt;b.oy+=b.vy*dt;
+      if(Math.abs(b.ox)+Math.abs(b.oy)+Math.abs(b.vx)+Math.abs(b.vy)<.05){b.ox=b.oy=b.vx=b.vy=0}}
     const u=((now/b.life)+b.ph)%1,env=Math.min(1,Math.sin(Math.PI*u)*3.2),br=.72+.28*Math.sin(ts*b.bf+b.p1);
     const a=env*br*sceneA;if(a<.02)continue;
-    const px=b.hx+b.ux*b.cr*u*M+(Math.sin(ts*b.f1+b.p1)+.5*Math.sin(ts*b.f2*1.7+b.p2))*b.am*M,py=b.hy+b.uy*b.cr*u*M+.35*b.cr*u*M+(Math.cos(ts*b.f2+b.p2)+.5*Math.sin(ts*b.f1*1.3+b.p1))*b.am*.7*M;
-    const q=lay.bl(px,py),r=b.rot*Math.sin(ts*b.f2+b.p1)*M;
+    const px=b.hx+b.ux*b.cr*u*M+(Math.sin(ts*b.f1+b.p1)+.5*Math.sin(ts*b.f2*1.7+b.p2))*b.am*M,py=b.hy+b.uy*b.cr*u*M-.3*b.cr*u*M+(Math.cos(ts*b.f2+b.p2)+.5*Math.sin(ts*b.f1*1.3+b.p1))*b.am*.7*M;
+    const q=lay.bl(px+(b.ox||0),py+(b.oy||0)),r=b.rot*Math.sin(ts*b.f2+b.p1)*M;
     ctx.globalAlpha=a;
     if(Math.abs(r)>.004){ctx.save();ctx.translate(q[0]+tx,q[1]+ty);ctx.rotate(r);ctx.drawImage(b.cv,-b.ax,-b.ay,b.w,b.h);ctx.restore()}
     else ctx.drawImage(b.cv,q[0]+tx-b.ax,q[1]+ty-b.ay,b.w,b.h);
@@ -258,10 +261,11 @@ function drawBlood(){
   ctx.globalAlpha=1;
   const fs=Math.max(4.6,Math.max(1,Math.ceil(3.1/(SCN.B.u*s)))*SCN.B.u*s*1.55);ctx.textAlign="center";ctx.textBaseline="middle";
   for(const p of specks){p.age+=dt*1000;if(p.age>=p.life){speckSpawn(p,false)}
-    const v=flow(p.x,p.y,ts);p.x+=(v[0]*7+(p.x-BURST[0])*.004)*dt*M;p.y+=(v[1]*6+2)*dt*M;
+    const v=flow(p.x,p.y,ts);p.x+=(v[0]*7+(p.x-BURST[0])*.004+(p.ivx||0))*dt*M;p.y+=(v[1]*6-3.5+(p.ivy||0))*dt*M;
+    if(p.ivx||p.ivy){const dm=Math.exp(-dt*1.6);p.ivx*=dm;p.ivy*=dm;if(Math.abs(p.ivx)+Math.abs(p.ivy)<.2)p.ivx=p.ivy=0}
     const u=p.age/p.life,a=Math.min(1,Math.sin(Math.PI*u)*2.5)*(.55+.45*Math.sin(ts*1.3+p.ph))*sceneA*.85;if(a<.03)continue;
-    const q=lay.bl(p.x,p.y);ctx.font=`bold ${(fs*p.sz).toFixed(1)}px ui-monospace,Menlo,Consolas,monospace`;
-    ctx.fillStyle=`hsl(${p.h|0} 82% ${p.l|0}% / ${a.toFixed(3)})`;ctx.fillText(p.ch,q[0]+tx,q[1]+ty)}
+    const q=lay.bl(p.x,p.y);ctx.globalAlpha=a;rdraw(p.ch,fs*p.sz,p.h,p.l,q[0]+tx,q[1]+ty)}
+  ctx.globalAlpha=1;
   ctx.textAlign="left";ctx.textBaseline="top";
 }
 // ---------- crosshairs: rings and cross lines made of characters, red, wandering about a pixel (slow random walk) ----------
@@ -296,10 +300,59 @@ function animalAt(x,y){
   if(best<0)for(const X of xh)if(Math.hypot(x2-X.cx,y2-X.cy)<Math.max(26,X.r[0]*X.s*.7))return X.k;
   return best;
 }
-// rabbit, fox, cat: the crosshair snaps tight, a little burst of red from the head, the animal shivers
+// ---------- a shot: a burst of red characters out of the head; they fly out fast, slow down, then float on the same slow flow as
+// the splatter (drift, a little curl, a gentle rise), breathing as they fade over a few seconds. The burst also nudges the blood around it ----------
+const SHOT_CAP=750;let shots=[],sT=0,SPR=new Map();
+// red characters are drawn from small cached sprites (no font switching per particle)
+function rspr(chr,px,h,l){px=Math.max(3,Math.round(px));h=h<353?350:h<357?355:359;l=l<42?38:l<50?46:54;const key=chr+px+"|"+h+"|"+l+"|"+dpr;let c=SPR.get(key);
+  if(!c){const s=Math.ceil(px*1.5);c=document.createElement("canvas");c.width=Math.ceil(s*dpr);c.height=Math.ceil(s*dpr);const X=c.getContext("2d");X.setTransform(dpr,0,0,dpr,0,0);
+    X.font=`bold ${px}px ui-monospace,Menlo,Consolas,monospace`;X.textAlign="center";X.textBaseline="middle";X.fillStyle=`hsl(${h} 86% ${l}%)`;X.fillText(chr,s/2,s/2);c._s=s;if(SPR.size>4000)SPR.clear();SPR.set(key,c)}
+  return c}
+function rdraw(chr,px,h,l,x,y){const c=rspr(chr,px,h,l),s=c._s;ctx.drawImage(c,x-s/2,y-s/2,s,s)}
+function shotSpawn(x,y){
+  if(!lay)return;
+  const sc=clamp(W/1440,.42,1),live=shots.length,want=Math.round(115*(lay.tall?.75:1));
+  const fb=Math.max(6,cell*1.3),dir=Math.random()*6.2832;
+  const mk=(vx,vy,o)=>{let slot=null;
+    if(shots.length>=SHOT_CAP){let bi=0,bu=-1;for(let q=0;q<shots.length;q++){const u=shots[q].age/shots[q].life;if(u>bu){bu=u;bi=q}}slot=bi}
+    const np=(Object.assign({x:x+(Math.random()-.5)*6*sc,y:y+(Math.random()-.5)*6*sc,vx,vy,age:0,life:3000+Math.random()*3000,
+    h:350+Math.random()*10,l:44+Math.random()*16,ph:Math.random()*6.28,cu:(Math.random()-.5)*.9,sz:fb*(.7+Math.random()*.55),ch:".,'`:;*"[Math.random()*7|0],cl:null},o));
+    if(slot===null)shots.push(np);else shots[slot]=np};
+  for(let i=0;i<want;i++){
+    // spray: all around, a bit heavier in one direction and upward
+    const a=Math.random()<.55?dir+(Math.random()-.5)*1.6:Math.random()*6.2832,sp=(160+Math.pow(Math.random(),1.25)*1050)*sc,vx=Math.cos(a)*sp,vy=Math.sin(a)*sp*.8-60*sc;
+    if(Math.random()<.13){   // a blob (a few clustered characters) with smaller droplets trailing behind it
+      const n=3+(Math.random()*4|0),cl=[];for(let q=0;q<n;q++)cl.push([(Math.random()-.5)*.9,(Math.random()-.5)*.7,"oO@%*"[Math.random()*5|0]]);
+      mk(vx,vy,{sz:fb*(1.2+Math.random()*.8),cl,life:4200+Math.random()*1800,l:40+Math.random()*10});
+      const tr=2+(Math.random()*3|0);for(let q=1;q<=tr;q++){const f=1-q*.13-Math.random()*.06;mk(vx*f,vy*f,{sz:fb*(.55+Math.random()*.3),ch:".,'"[Math.random()*3|0]})}i+=tr;
+    }else mk(vx,vy,{});
+  }
+  // the ambient splatter around the hit gets pushed outward, then eases back
+  const P=lay.ib(x,y),R=330;
+  for(const b of blood){const dx=b.hx-P[0],dy=b.hy-P[1],d=Math.hypot(dx,dy);if(d>R||d<1)continue;const m=150*Math.pow(1-d/R,2);b.vx=(b.vx||0)+dx/d*m;b.vy=(b.vy||0)+dy/d*m;b.ox=b.ox||0;b.oy=b.oy||0}
+  for(const p of specks){const dx=p.x-P[0],dy=p.y-P[1],d=Math.hypot(dx,dy);if(d>R||d<1)continue;const m=60*Math.pow(1-d/R,2);p.ivx=(p.ivx||0)+dx/d*m;p.ivy=(p.ivy||0)+dy/d*m}
+}
+function drawShots(){
+  const now=performance.now(),dt=Math.min(50,now-(sT||now))/1000,ts=now/1000;sT=now;
+  if(!shots.length)return;
+  if(pv.st==="on"){shots.length=0;return}
+  const sc=clamp(W/1440,.42,1),M=RM?.3:1;let w=0;
+  for(let k=0;k<shots.length;k++){const p=shots[k];p.age+=dt*1000;if(p.age>=p.life)continue;shots[w++]=p;
+    const dm=Math.exp(-dt*3.4);p.vx*=dm;p.vy*=dm;
+    const v=flow(p.x/sc,p.y/sc,ts),sp=Math.hypot(p.vx,p.vy),calm=clamp(1-sp/160,0,1);
+    // once slow: the flow takes over, a little curl around the motion, a gentle rise
+    const cx=-p.vy*p.cu*dt,cy=p.vx*p.cu*dt;p.vx+=cx;p.vy+=cy;
+    p.x+=(p.vx+calm*(v[0]*11*sc))*dt*M;p.y+=(p.vy+calm*(v[1]*9-7)*sc)*dt*M;
+    const u=p.age/p.life,a=Math.min(1,p.age/90)*(1-u*u)*(.8+.2*Math.sin(ts*1.7+p.ph));if(a<.02)continue;
+    ctx.globalAlpha=a;
+    if(p.cl){const z=p.sz;for(const c of p.cl)rdraw(c[2],z,p.h,p.l,p.x+c[0]*z,p.y+c[1]*z)}else rdraw(p.ch,p.sz,p.h,p.l,p.x,p.y);
+  }
+  shots.length=w;ctx.globalAlpha=1;
+}
+function shoot(k){const X=xh[k];if(!X)return;X.snap=performance.now();shotSpawn(X.cx+tiltX*cell*2.2,X.cy+tiltY*ch*.8)}
+// rabbit, fox, cat: the crosshair snaps tight, a burst of red from the head, the animal shivers
 function animalReact(k){
-  const X=xh[k];if(!X)return;X.snap=performance.now();aShake[k]=RM?0:2.4;
-  for(let i=0;i<26;i++){const a=Math.random()*6.2832,s=.4+Math.random()*2.4;parts.push({x:X.cx,y:X.cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-.3,g:.02,life:40+Math.random()*45,max:85,ch:".,:;*o"[Math.random()*6|0],hue:Math.random(),red:1})}
+  const X=xh[k];if(!X)return;aShake[k]=RM?0:2.4;shoot(k);
   try{unlockAudio();SFX.tick();buzz([12,20,12])}catch(e){}
 }
 function faceStart(){if(face.on||face.st!=="off")return;face.st="in";face.on=true;face.t0=t;faceInit();try{buzz([40,60,40,60,120])}catch(e){}}
@@ -714,6 +767,7 @@ function frame(){
   // the floating blood, then the animals (their layers have a dark backing, so the blood stays behind them)
   try{drawBlood()}catch(e){}
   try{drawAnimals()}catch(e){}
+  try{drawShots()}catch(e){}
   ctx.font=`bold ${cell*1.45}px ui-monospace,Menlo,Consolas,monospace`;ctx.textBaseline="top";
   // ---- letters + background ----
   for(let r=0;r<rows;r++){
@@ -829,8 +883,8 @@ addEventListener("pointerdown",e=>{px=e.clientX;py=e.clientY;lastInput=t;
   // one tap on an animal: deer -> poems, kitten -> the eyes, rabbit / fox / cat -> a small reaction
   const k=face.on?-1:animalAt(e.clientX,e.clientY);
   fire(e.clientX,e.clientY,false,k>=0);
-  if(k===2){try{enterPoems("dissolve")}catch(err){}}
-  else if(k===0){try{faceStart()}catch(err){}}
+  if(k===2){try{shoot(2)}catch(err){}try{enterPoems("dissolve")}catch(err){}}
+  else if(k===0){try{shoot(0)}catch(err){}try{faceStart()}catch(err){}}
   else if(k>0){try{animalReact(k)}catch(err){}}
   hx=px;hy=py;clearTimeout(hold);hold=null;
   if(k<0)hold=setTimeout(()=>{if(pv.st==="off")finale(hx,hy);hold=null},700)});
